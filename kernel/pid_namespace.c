@@ -129,13 +129,14 @@ static void destroy_pid_namespace(struct pid_namespace *ns)
 	kmem_cache_free(pid_ns_cachep, ns);
 }
 
-struct pid_namespace *copy_pid_ns(unsigned long flags, struct pid_namespace *old_ns)
+struct pid_namespace *copy_pid_ns(unsigned long flags,
+	struct pid_namespace *default_ns, struct pid_namespace *active_ns)
 {
 	if (!(flags & CLONE_NEWPID))
-		return get_pid_ns(old_ns);
+		return get_pid_ns(default_ns);
 	if (flags & (CLONE_THREAD|CLONE_PARENT))
 		return ERR_PTR(-EINVAL);
-	return create_pid_namespace(old_ns);
+	return create_pid_namespace(active_ns);
 }
 
 void free_pid_ns(struct kref *kref)
