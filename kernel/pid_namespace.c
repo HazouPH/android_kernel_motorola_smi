@@ -97,12 +97,18 @@ static struct pid_namespace *create_pid_namespace(struct pid_namespace *parent_p
 	for (i = 1; i < PIDMAP_ENTRIES; i++)
 		atomic_set(&ns->pidmap[i].nr_free, BITS_PER_PAGE);
 
-	err = pid_ns_prepare_proc(ns);
+	err = proc_alloc_inum(&ns->proc_inum);
 	if (err)
 		goto out_put_parent_pid_ns;
 
+	err = pid_ns_prepare_proc(ns);
+	if (err)
+		goto out_free_proc_inum;
+
 	return ns;
 
+out_free_proc_inum:
+	proc_free_inum(ns->proc_inum);
 out_put_parent_pid_ns:
 	put_pid_ns(parent_pid_ns);
 out_free_map:
@@ -117,6 +123,7 @@ static void destroy_pid_namespace(struct pid_namespace *ns)
 {
 	int i;
 
+	proc_free_inum(ns->proc_inum);
 	for (i = 0; i < PIDMAP_ENTRIES; i++)
 		kfree(ns->pidmap[i].page);
 	kmem_cache_free(pid_ns_cachep, ns);
@@ -190,6 +197,47 @@ void zap_pid_ns_processes(struct pid_namespace *pid_ns)
 	acct_exit_ns(pid_ns);
 	return;
 }
+
+static void *pidns_get(struct task_struct *task)
+{
+	struct pid_namespace *ns;
+
+	rcu_read_lock();
+	ns = get_pid_ns(task_active_pid_ns(task));
+	rcu_read_unlock();
+
+	return ns;
+}
+
+static void pidns_put(void *ns)
+{
+	put_pid_ns(ns);
+}
+
+static int pidns_install(struct nsproxy *nsproxy, void *ns)
+{
+	return -EINVAL;
+#ifdef notyet
+	put_pid_ns(nsproxy->pid_ns);
+	nsproxy->pid_ns = get_pid_ns(ns);
+	return 0;
+#endif
+}
+
+static unsigned int pidns_inum(void *vns)
+{
+	struct pid_namespace *ns = vns;
+	return ns->proc_inum;
+}
+
+const struct proc_ns_operations pidns_operations = {
+	.name		= "pid",
+	.type		= CLONE_NEWPID,
+	.get		= pidns_get,
+	.put		= pidns_put,
+	.install	= pidns_install,
+	.inum		= pidns_inum,
+};
 
 static __init int pid_namespaces_init(void)
 {
