@@ -12,6 +12,7 @@
 #include <linux/proc_fs.h>
 
 extern struct proc_dir_entry proc_root;
+extern void proc_self_init(void);
 #ifdef CONFIG_PROC_SYSCTL
 extern int proc_sys_init(void);
 #else

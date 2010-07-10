@@ -105,6 +105,7 @@ void __init proc_root_init(void)
 	}
 
 	init_pid_ns.proc_mnt = mnt;
+	proc_self_init();
 	proc_symlink("mounts", NULL, "self/mounts");
 
 	proc_net_init();
