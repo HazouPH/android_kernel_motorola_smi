@@ -153,16 +153,20 @@ void free_pid_ns(struct kref *kref)
 
 void zap_pid_ns_processes(struct pid_namespace *pid_ns)
 {
+	struct task_struct *me = current;
 	int nr;
 	int rc;
 	struct task_struct *task;
 
 	/*
-	 * The last thread in the cgroup-init thread group is terminating.
-	 * Find remaining pid_ts in the namespace, signal and wait for them
-	 * to exit.
+	 * The last task in the pid namespace-init thread group is terminating.
+	 * Find remaining pids in the namespace, signal and wait for them
+	 * to to be reaped.
 	 *
-	 * Note:  This signals each threads in the namespace - even those that
+	 * By waiting for all of the tasks to be reaped before init is reaped
+	 * we provide the invariant that no task can escape the pid namespace.
+	 *
+	 * Note:  This signals each task in the namespace - even those that
 	 * 	  belong to the same thread group, To avoid this, we would have
 	 * 	  to walk the entire tasklist looking a processes in this
 	 * 	  namespace, but that could be unnecessarily expensive if the
@@ -171,28 +175,52 @@ void zap_pid_ns_processes(struct pid_namespace *pid_ns)
 	 *
 	 */
 	read_lock(&tasklist_lock);
-	nr = next_pidmap(pid_ns, 1);
-	while (nr > 0) {
-		rcu_read_lock();
+	for (nr = next_pidmap(pid_ns, 0); nr > 0; nr = next_pidmap(pid_ns, nr)) {
 
 		/*
 		 * Any nested-container's init processes won't ignore the
 		 * SEND_SIG_NOINFO signal, see send_signal()->si_fromuser().
 		 */
-		task = pid_task(find_vpid(nr), PIDTYPE_PID);
-		if (task)
+		rcu_read_lock();
+		task = pid_task(find_pid_ns(nr, pid_ns), PIDTYPE_PID);
+		if (task && !same_thread_group(task, me))
 			send_sig_info(SIGKILL, SEND_SIG_NOINFO, task);
-
 		rcu_read_unlock();
-
-		nr = next_pidmap(pid_ns, nr);
 	}
 	read_unlock(&tasklist_lock);
 
+	/* Nicely reap all of the remaining children in the namespace */
 	do {
 		clear_thread_flag(TIF_SIGPENDING);
 		rc = sys_wait4(-1, NULL, __WALL, NULL);
 	} while (rc != -ECHILD);
+       
+
+repeat:
+	/* Brute force wait for any remaining tasks to pass unhash_process
+	 * in release_task.  Once a task has passed unhash_process there
+	 * is no pid_namespace state left and they can be safely ignored.
+	 */
+	for (nr = next_pidmap(pid_ns, 1); nr > 0; nr = next_pidmap(pid_ns, nr)) {
+		int found;
+
+		/* Are there any tasks alive in this pid namespace */
+		rcu_read_lock();
+		task = pid_task(find_pid_ns(nr, pid_ns), PIDTYPE_PID);
+		found = task && !same_thread_group(task, me);
+		rcu_read_unlock();
+		if (found) {
+			clear_thread_flag(TIF_SIGPENDING);
+			schedule_timeout_interruptible(HZ/10);
+			goto repeat;
+		}
+	}
+	/* At this point there are at most two tasks in the pid namespace.
+	 * These tasks are our current task, and if we aren't pid 1 the zombie
+	 * of pid 1. In either case pid 1 will be the final task reaped in this
+	 * pid namespace, as non-leader threads are self reaping and leaders
+	 * cannot be reaped until all of their siblings have been reaped.
+	 */
 
 	acct_exit_ns(pid_ns);
 	return;
