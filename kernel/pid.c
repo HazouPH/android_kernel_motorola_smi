@@ -76,6 +76,7 @@ struct pid_namespace init_pid_ns = {
 		[ 0 ... PIDMAP_ENTRIES-1] = { ATOMIC_INIT(BITS_PER_PAGE), NULL }
 	},
 	.last_pid = 0,
+	.dead = 0,
 	.level = 0,
 	.child_reaper = &init_task,
 	.proc_inum = PROC_PID_INIT_INO,
@@ -292,6 +293,8 @@ struct pid *alloc_pid(struct pid_namespace *ns)
 
 	tmp = ns;
 	for (i = ns->level; i >= 0; i--) {
+		if (ns->dead)
+			goto out_free;
 		nr = alloc_pidmap(tmp);
 		if (nr < 0)
 			goto out_free;
