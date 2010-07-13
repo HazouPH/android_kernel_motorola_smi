@@ -1001,8 +1001,6 @@ static int copy_signal(unsigned long clone_flags, struct task_struct *tsk)
 	tsk->thread_node = (struct list_head)LIST_HEAD_INIT(sig->thread_head);
 
 	init_waitqueue_head(&sig->wait_chldexit);
-	if (clone_flags & CLONE_NEWPID)
-		sig->flags |= SIGNAL_UNKILLABLE;
 	sig->curr_target = tsk;
 	init_sigpending(&sig->shared_pending);
 	INIT_LIST_HEAD(&sig->posix_timers);
@@ -1428,8 +1426,18 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 		tracehook_finish_clone(p, clone_flags, trace);
 
 		if (thread_group_leader(p)) {
-			if (is_child_reaper(pid))
+			if (is_child_reaper(pid)) {
+				/*
+				 * Tell the world that we're going to be the grim
+				 * reaper of innocent orphaned children.
+				 *
+				 * We don't want people to have to make incorrect
+				 * assumptions about where in the task array this
+				 * can be found.
+				 */
 				p->nsproxy->pid_ns->child_reaper = p;
+				p->signal->flags |= SIGNAL_UNKILLABLE;
+			}
 
 			p->signal->leader_pid = pid;
 			p->signal->tty = tty_kref_get(current->signal->tty);
