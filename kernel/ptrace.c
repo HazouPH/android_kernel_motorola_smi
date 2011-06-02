@@ -25,6 +25,12 @@
 #include <linux/hw_breakpoint.h>
 #include <linux/debugfs.h>
 
+static int ptrace_trapping_sleep_fn(void *flags)
+{
+	schedule();
+	return 0;
+}
+
 static int ptrace_can_access;
 module_param_named(ptrace_can_access, ptrace_can_access,\
 	int, S_IRUGO | S_IWUSR | S_IWGRP);
@@ -301,8 +307,8 @@ unlock_creds:
 	mutex_unlock(&task->signal->cred_guard_mutex);
 out:
 	if (!retval)
-		wait_event(current->signal->wait_chldexit,
-			   !(task->jobctl & JOBCTL_TRAPPING));
+		wait_on_bit(&task->jobctl, JOBCTL_TRAPPING_BIT,
+			    ptrace_trapping_sleep_fn, TASK_UNINTERRUPTIBLE);
 	return retval;
 }
 
