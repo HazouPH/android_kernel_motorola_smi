@@ -59,7 +59,7 @@ static const struct dentry_operations ns_dentry_operations =
 static struct dentry *proc_ns_get_dentry(struct super_block *sb,
 	struct task_struct *task, const struct proc_ns_operations *ns_ops)
 {
-	struct dentry *dentry;
+	struct dentry *dentry, *result;
 	struct inode *inode;
 	struct proc_inode *ei;
 	struct qstr qname = { .name = "", };
@@ -75,7 +75,7 @@ static struct dentry *proc_ns_get_dentry(struct super_block *sb,
 		return ERR_PTR(-ENOMEM);
 	}
 
-	inode = new_inode(sb);
+	inode = iget_locked(sb, ns_ops->inum(ns));
 	if (!inode) {
 		dput(dentry);
 		ns_ops->put(ns);
@@ -83,16 +83,24 @@ static struct dentry *proc_ns_get_dentry(struct super_block *sb,
 	}
 		
 	ei = PROC_I(inode);
-	inode->i_ino = get_next_ino();
-	inode->i_mtime = inode->i_atime = inode->i_ctime = CURRENT_TIME;
-	inode->i_op = &ns_inode_operations;
-	inode->i_mode = S_IFREG|S_IRUSR;
-	inode->i_fop = &ns_file_operations;
-	ei->ns_ops = ns_ops;
-	ei->ns = ns;
+	if (inode->i_state & I_NEW) {
+		inode->i_mtime = inode->i_atime = inode->i_ctime = CURRENT_TIME;
+		inode->i_op = &ns_inode_operations;
+		inode->i_mode = S_IFREG|S_IRUSR;
+		inode->i_fop = &ns_file_operations;
+		ei->ns_ops = ns_ops;
+		ei->ns = ns;
+		unlock_new_inode(inode);
+	} else {
+		ns_ops->put(ns);
+	}
 
 	d_set_d_op(dentry, &ns_dentry_operations);
-	d_instantiate(dentry, inode);
+	result = d_instantiate_unique(dentry, inode);
+	if (result) {
+		dput(dentry);
+		dentry = result;
+	}
 
 	return dentry;
 }
@@ -135,6 +143,7 @@ static int proc_ns_readlink(struct dentry *dentry, char __user *buffer, int bufl
 	struct proc_inode *ei = PROC_I(inode);
 	const struct proc_ns_operations *ns_ops = ei->ns_ops;
 	struct task_struct *task;
+	void *ns;
 	char name[50];
 	int len = -EACCES;
 
@@ -145,14 +154,20 @@ static int proc_ns_readlink(struct dentry *dentry, char __user *buffer, int bufl
 	if (!ptrace_may_access(task, PTRACE_MODE_READ))
 		goto out_put_task;
 
-	snprintf(name, sizeof(name), "%s", ns_ops->name);
+	len = -ENOENT;
+	ns = ns_ops->get(task);
+	if (!ns)
+		goto out_put_task;
+
+	snprintf(name, sizeof(name), "%s:[%u]", ns_ops->name, ns_ops->inum(ns));
 	len = strlen(name);
 
 	if (len > buflen)
 		len = buflen;
-	if (copy_to_user(buffer, ns_ops->name, len))
+	if (copy_to_user(buffer, name, len))
 		len = -EFAULT;
 
+	ns_ops->put(ns);
 out_put_task:
 	put_task_struct(task);
 out:
