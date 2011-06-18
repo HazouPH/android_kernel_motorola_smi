@@ -31,6 +31,7 @@ enum {
 	PROC_ROOT_INO		= 1,
 	PROC_IPC_INIT_INO	= 0xEFFFFFFFU,
 	PROC_UTS_INIT_INO	= 0xEFFFFFFEU,
+	PROC_USER_INIT_INO	= 0xEFFFFFFDU,
 };
 
 
@@ -272,6 +273,7 @@ extern const struct proc_ns_operations netns_operations;
 extern const struct proc_ns_operations utsns_operations;
 extern const struct proc_ns_operations ipcns_operations;
 extern const struct proc_ns_operations mntns_operations;
+extern const struct proc_ns_operations userns_operations;
 
 union proc_op {
 	int (*proc_get_link)(struct inode *, struct path *);

@@ -11,6 +11,7 @@
 #include <linux/user_namespace.h>
 #include <linux/highuid.h>
 #include <linux/cred.h>
+#include <linux/proc_fs.h>
 
 static struct kmem_cache *user_ns_cachep __read_mostly;
 
@@ -27,10 +28,17 @@ int create_user_ns(struct cred *new)
 	struct user_namespace *ns;
 	struct user_struct *root_user;
 	int n;
+	int ret;
 
 	ns = kmem_cache_alloc(user_ns_cachep, GFP_KERNEL);
 	if (!ns)
 		return -ENOMEM;
+
+	ret = proc_alloc_inum(&ns->proc_inum);
+	if (ret) {
+		kmem_cache_free(user_ns_cachep, ns);
+		return ret;
+	}
 
 	kref_init(&ns->kref);
 
@@ -40,6 +48,7 @@ int create_user_ns(struct cred *new)
 	/* Alloc new root user.  */
 	root_user = alloc_uid(ns, 0);
 	if (!root_user) {
+		proc_free_inum(ns->proc_inum);
 		kmem_cache_free(user_ns_cachep, ns);
 		return -ENOMEM;
 	}
@@ -73,6 +82,7 @@ static void free_user_ns_work(struct work_struct *work)
 	struct user_namespace *ns =
 		container_of(work, struct user_namespace, destroyer);
 	free_uid(ns->creator);
+	proc_free_inum(ns->proc_inum);
 	kmem_cache_free(user_ns_cachep, ns);
 }
 
@@ -135,3 +145,33 @@ static __init int user_namespaces_init(void)
 	return 0;
 }
 module_init(user_namespaces_init);
+
+static void *userns_get(struct task_struct *task)
+{
+	return get_user_ns(task_cred_xxx(task, user)->user_ns);
+}
+
+static void userns_put(void *ns)
+{
+	put_user_ns(ns);
+}
+
+static int userns_install(struct nsproxy *nsproxy, void *ns)
+{
+	return -EINVAL;
+}
+
+static unsigned int userns_inum(void *ns)
+{
+	struct user_namespace *user_ns = ns;
+	return user_ns->proc_inum;
+}
+
+const struct proc_ns_operations userns_operations = {
+	.name		= "user",
+	.type		= CLONE_NEWNS,
+	.get		= userns_get,
+	.put		= userns_put,
+	.install	= userns_install,
+	.inum		= userns_inum,
+};
