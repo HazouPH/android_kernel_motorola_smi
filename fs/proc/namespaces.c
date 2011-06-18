@@ -330,3 +330,7 @@ out_invalid:
 	return ERR_PTR(-EINVAL);
 }
 
+bool proc_ns_inode(struct inode *inode)
+{
+	return inode->i_fop == &ns_file_operations;
+}

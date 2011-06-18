@@ -177,6 +177,7 @@ extern struct proc_dir_entry *proc_net_mkdir(struct net *net, const char *name,
 	struct proc_dir_entry *parent);
 
 extern struct file *proc_ns_fget(int fd);
+extern bool proc_ns_inode(struct inode *inode);
 
 extern int proc_alloc_inum(unsigned int *pino);
 extern void proc_free_inum(unsigned int inum);
@@ -232,6 +233,11 @@ static inline void pid_ns_release_proc(struct pid_namespace *ns)
 static inline struct file *proc_ns_fget(int fd)
 {
 	return ERR_PTR(-EINVAL);
+}
+
+static bool proc_ns_inode(struct inode *inode)
+{
+	return false;
 }
 
 static inline int proc_alloc_inum(unsigned int *inum)
