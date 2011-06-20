@@ -583,11 +583,14 @@ static inline int exec_permission(struct inode *inode, unsigned int flags)
 {
 	int ret;
 	struct user_namespace *ns = inode_userns(inode);
+	int mask = MAY_EXEC;
+	if (flags & IPERM_FLAG_RCU)
+		mask |= MAY_NOT_BLOCK;
 
 	if (inode->i_op->permission) {
-		ret = inode->i_op->permission(inode, MAY_EXEC, flags);
+		ret = inode->i_op->permission(inode, mask, flags);
 	} else {
-		ret = acl_permission_check(inode, MAY_EXEC, flags,
+		ret = acl_permission_check(inode, mask, flags,
 				inode->i_op->check_acl);
 	}
 	if (likely(!ret))
