@@ -10,7 +10,6 @@
 #include <linux/nsproxy.h>
 #include <linux/proc_fs.h>
 #include <linux/file.h>
-#include <linux/export.h>
 #include <linux/user_namespace.h>
 #include <net/net_namespace.h>
 #include <net/netns/generic.h>
