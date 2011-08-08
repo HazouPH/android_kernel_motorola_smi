@@ -246,12 +246,9 @@ static void pidns_put(void *ns)
 
 static int pidns_install(struct nsproxy *nsproxy, void *ns)
 {
-	return -EINVAL;
-#ifdef notyet
 	put_pid_ns(nsproxy->pid_ns);
 	nsproxy->pid_ns = get_pid_ns(ns);
 	return 0;
-#endif
 }
 
 static unsigned int pidns_inum(void *vns)
