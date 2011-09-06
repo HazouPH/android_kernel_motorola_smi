@@ -1223,7 +1223,8 @@ static int hci_outgoing_auth_needed(struct hci_dev *hdev,
 		return 0;
 
 	/* Only request authentication for SSP connections or non-SSP
-	 * devices with sec_level >= BT_SECURITY_MEDIUM */
+	 * devices with sec_level >= BT_SECURITY_MEDIUM*/
+	 BT_DBG("Pending sec level is %d", conn->pending_sec_level);
 	if (!(hdev->ssp_mode > 0 && conn->ssp_mode > 0) &&
 				conn->pending_sec_level < BT_SECURITY_MEDIUM)
 		return 0;
@@ -2682,6 +2683,12 @@ static inline void hci_link_key_request_evt(struct hci_dev *hdev, struct sk_buff
 	if (conn) {
 		BT_DBG("Conn pending sec level is %d, ssp is %d, key len is %d",
 			conn->pending_sec_level, conn->ssp_mode, key->pin_len);
+	}
+	if (conn && (conn->ssp_mode == 0) &&
+		(conn->pending_sec_level == BT_SECURITY_HIGH) &&
+		(key->pin_len != 16)) {
+		BT_DBG("Security is high ignoring this key");
+		goto not_found;
 	}
 
 	if (key->key_type == 0x04 && conn && conn->auth_type != 0xff &&
