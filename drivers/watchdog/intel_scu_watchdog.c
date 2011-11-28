@@ -163,7 +163,7 @@ static bool reset_on_release = true;
  *	SOFT_LOCK_TIME needs to be < SCU warn to reset time
  *	which is currently thats 15 sec.
  *
- * The soft lock works be taking a snapshot of kstat_cpu(i).cpustat.system at
+ * The soft lock works be taking a snapshot of kcpustat_cpu(i).cpustat[CPUTIME_SYSTEM] at
  * the time of the warning interrupt for each cpu.  Then at SOFT_LOCK_TIME the
  * amount of time spend in system is computed and if its within 10 ms of the
  * total SOFT_LOCK_TIME on any cpu it will dump the stack on that cpu and then
@@ -188,12 +188,12 @@ static void smp_dumpstack(void *info)
 static void dump_softlock_debug(unsigned long data)
 {
 	int i, reboot;
-	cputime64_t system[NR_CPUS], num_jifs;
+	u64 system[NR_CPUS], num_jifs;
 
 	num_jifs = jiffies - beattime;
 	for_each_possible_cpu(i) {
-		system[i] = cputime64_sub(kstat_cpu(i).cpustat.system,
-				heartbeats[i]);
+		system[i] = kcpustat_cpu(i).cpustat[CPUTIME_SYSTEM] -
+				heartbeats[i];
 	}
 
 	reboot = 0;
@@ -319,7 +319,7 @@ static void watchdog_interrupt_tasklet_body(unsigned long data)
 		/*start timer for softlock detection */
 		beattime = jiffies;
 		for_each_possible_cpu(i) {
-			heartbeats[i] = kstat_cpu(i).cpustat.system;
+			heartbeats[i] = kcpustat_cpu(i).cpustat[CPUTIME_SYSTEM];
 		}
 		mod_timer(&softlock_timer, jiffies + SOFT_LOCK_TIME * HZ);
 	}
