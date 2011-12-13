@@ -1961,7 +1961,7 @@ static struct vfsmount *fs_set_subtype(struct vfsmount *mnt, const char *fstype)
 	return ERR_PTR(err);
 }
 
-struct vfsmount *
+static struct vfsmount *
 do_kern_mount(const char *fstype, int flags, const char *name, void *data)
 {
 	struct file_system_type *type = get_fs_type(fstype);
@@ -1975,7 +1975,6 @@ do_kern_mount(const char *fstype, int flags, const char *name, void *data)
 	put_filesystem(type);
 	return mnt;
 }
-EXPORT_SYMBOL_GPL(do_kern_mount);
 
 /*
  * add a mount into a namespace's mount tree
