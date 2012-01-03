@@ -1543,7 +1543,6 @@ long do_fork(unsigned long clone_flags,
 			init_completion(&vfork);
 		}
 
-		audit_finish_fork(p);
 		tracehook_report_clone(regs, clone_flags, nr, p);
 
 		/*
