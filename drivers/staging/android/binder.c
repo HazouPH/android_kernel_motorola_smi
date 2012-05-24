@@ -3660,7 +3660,7 @@ static void *binder_stats_seq_start(struct seq_file *m, loff_t *pos)
 {
 	struct binder_stats_data *data = m->private;
 	if (data->do_lock)
-		mutex_lock(&binder_lock);
+		binder_lock(__func__);
 	return binder_stats_find(m, pos);
 }
 
@@ -3690,7 +3690,7 @@ static void binder_stats_seq_stop(struct seq_file *m, void *v)
 {
 	struct binder_stats_data *data = m->private;
 	if (data->do_lock)
-		mutex_unlock(&binder_lock);
+		binder_unlock(__func__);
 }
 
 
@@ -3758,7 +3758,7 @@ static void *binder_state_seq_start(struct seq_file *m, loff_t *pos)
 {
 	struct binder_state_data *d = m->private;
 	if (d->do_lock)
-		mutex_lock(&binder_lock);
+		binder_lock(__func__);
 
 	return binder_state_find(m, pos, 1);
 }
@@ -3891,7 +3891,7 @@ static void binder_state_seq_stop(struct seq_file *m, void *v)
 {
 	struct binder_state_data *d = m->private;
 	if (d->do_lock)
-		mutex_unlock(&binder_lock);
+		binder_unlock(__func__);
 }
 
 static int binder_transactions_show(struct seq_file *m, void *unused)
