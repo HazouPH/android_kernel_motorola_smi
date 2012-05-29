@@ -263,21 +263,15 @@ DECLARE_EVENT_CLASS(mm_vmscan_lru_isolate_template,
 		unsigned long nr_requested,
 		unsigned long nr_scanned,
 		unsigned long nr_taken,
-		unsigned long nr_lumpy_taken,
-		unsigned long nr_lumpy_dirty,
-		unsigned long nr_lumpy_failed,
 		isolate_mode_t isolate_mode),
 
-	TP_ARGS(order, nr_requested, nr_scanned, nr_taken, nr_lumpy_taken, nr_lumpy_dirty, nr_lumpy_failed, isolate_mode),
+	TP_ARGS(order, nr_requested, nr_scanned, nr_taken, isolate_mode),
 
 	TP_STRUCT__entry(
 		__field(int, order)
 		__field(unsigned long, nr_requested)
 		__field(unsigned long, nr_scanned)
 		__field(unsigned long, nr_taken)
-		__field(unsigned long, nr_lumpy_taken)
-		__field(unsigned long, nr_lumpy_dirty)
-		__field(unsigned long, nr_lumpy_failed)
 		__field(isolate_mode_t, isolate_mode)
 	),
 
@@ -286,21 +280,15 @@ DECLARE_EVENT_CLASS(mm_vmscan_lru_isolate_template,
 		__entry->nr_requested = nr_requested;
 		__entry->nr_scanned = nr_scanned;
 		__entry->nr_taken = nr_taken;
-		__entry->nr_lumpy_taken = nr_lumpy_taken;
-		__entry->nr_lumpy_dirty = nr_lumpy_dirty;
-		__entry->nr_lumpy_failed = nr_lumpy_failed;
 		__entry->isolate_mode = isolate_mode;
 	),
 
-	TP_printk("isolate_mode=%d order=%d nr_requested=%lu nr_scanned=%lu nr_taken=%lu contig_taken=%lu contig_dirty=%lu contig_failed=%lu",
+	TP_printk("isolate_mode=%d order=%d nr_requested=%lu nr_scanned=%lu nr_taken=%lu,
 		__entry->isolate_mode,
 		__entry->order,
 		__entry->nr_requested,
 		__entry->nr_scanned,
-		__entry->nr_taken,
-		__entry->nr_lumpy_taken,
-		__entry->nr_lumpy_dirty,
-		__entry->nr_lumpy_failed)
+		__entry->nr_taken)
 );
 
 DEFINE_EVENT(mm_vmscan_lru_isolate_template, mm_vmscan_lru_isolate,
@@ -309,12 +297,9 @@ DEFINE_EVENT(mm_vmscan_lru_isolate_template, mm_vmscan_lru_isolate,
 		unsigned long nr_requested,
 		unsigned long nr_scanned,
 		unsigned long nr_taken,
-		unsigned long nr_lumpy_taken,
-		unsigned long nr_lumpy_dirty,
-		unsigned long nr_lumpy_failed,
 		isolate_mode_t isolate_mode),
 
-	TP_ARGS(order, nr_requested, nr_scanned, nr_taken, nr_lumpy_taken, nr_lumpy_dirty, nr_lumpy_failed, isolate_mode)
+	TP_ARGS(order, nr_requested, nr_scanned, nr_taken, isolate_mode)
 
 );
 
@@ -324,12 +309,9 @@ DEFINE_EVENT(mm_vmscan_lru_isolate_template, mm_vmscan_memcg_isolate,
 		unsigned long nr_requested,
 		unsigned long nr_scanned,
 		unsigned long nr_taken,
-		unsigned long nr_lumpy_taken,
-		unsigned long nr_lumpy_dirty,
-		unsigned long nr_lumpy_failed,
 		isolate_mode_t isolate_mode),
 
-	TP_ARGS(order, nr_requested, nr_scanned, nr_taken, nr_lumpy_taken, nr_lumpy_dirty, nr_lumpy_failed, isolate_mode)
+	TP_ARGS(order, nr_requested, nr_scanned, nr_taken, isolate_mode)
 
 );
 
