@@ -453,7 +453,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		     nr_to_scan, sc->gfp_mask, rem);
 	mutex_unlock(&scan_mutex);
     if (selected)
-        compact_nodes();
+        compact_nodes(false);
 	return rem;
 }
 
