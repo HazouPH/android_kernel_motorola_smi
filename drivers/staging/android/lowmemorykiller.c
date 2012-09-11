@@ -43,6 +43,7 @@
 #include <linux/delay.h>
 #include <linux/swap.h>
 #include <linux/fs.h>
+#include <linux/compaction.h>
 
 #include <trace/events/memkill.h>
 
@@ -72,6 +73,8 @@ static int lmk_fast_run = 1;
 #endif
 
 static unsigned long lowmem_deathpending_timeout;
+
+extern int compact_nodes();
 
 #define lowmem_print(level, x...)			\
 	do {						\
@@ -449,6 +452,8 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	lowmem_print(4, "lowmem_shrink %lu, %x, return %d\n",
 		     nr_to_scan, sc->gfp_mask, rem);
 	mutex_unlock(&scan_mutex);
+    if (selected)
+        compact_nodes();
 	return rem;
 }
 
