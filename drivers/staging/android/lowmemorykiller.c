@@ -38,11 +38,13 @@
 #include <linux/oom.h>
 #include <linux/sched.h>
 #include <linux/notifier.h>
+#include <linux/memory.h>
+#include <linux/memory_hotplug.h>
 #include <linux/swap.h>
 
 #include <trace/events/memkill.h>
 
-static uint32_t lowmem_debug_level = 2;
+static uint32_t lowmem_debug_level = 1;
 static int lowmem_adj[6] = {
 	0,
 	1,
