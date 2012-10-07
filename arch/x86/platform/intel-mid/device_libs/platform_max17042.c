@@ -192,6 +192,7 @@ void *max17042_platform_data(void *info)
 	platform_data.is_lowbatt_shutdown_enabled =
 					intel_msic_is_lowbatt_shutdown_en;
 	platform_data.get_vmin_threshold = intel_msic_get_vsys_min;
+	platform_data.soc_intr_mode_enabled = true;
 #endif
 #ifdef CONFIG_BOARD_REDRIDGE /* TODO: get rid of this */
 	platform_data.enable_current_sense = true;
@@ -209,6 +210,7 @@ void *max17042_platform_data(void *info)
 	platform_data.battery_health = ctp_get_battery_health;
 	platform_data.is_volt_shutdown_enabled = ctp_is_volt_shutdown_enabled;
 	platform_data.get_vmin_threshold = ctp_get_vsys_min;
+	platform_data.soc_intr_mode_enabled = true;
 #endif
 #ifdef CONFIG_CHARGER_SMB347 /* redridge dv10 */
 	platform_data.battery_status = smb347_get_charging_status;
