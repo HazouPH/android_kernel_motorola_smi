@@ -560,7 +560,7 @@ static int intel_msic_store_refrenced_table(u8 model)
 {
 	int mip_offset, ret, batt_index;
 	void *data;
-	u8 batt_id[BATTID_STR_LEN];
+	u8 batt_id[BATTID_STR_LEN] = {0};
 	u8 fg_tbl_type_id;
 
 	dev_info(msic_dev, "[sfi->batt_id]:%s\n", sfi_table->batt_id);
@@ -777,7 +777,7 @@ static int mdf_multi_read_adc_regs(struct msic_power_module_info *mbi,
 	va_list args;
 	int ret = 0, i, sensor, tmp;
 	int *adc_val;
-	int temp_adc_val[MSIC_BATT_SENSORS];
+	int temp_adc_val[MSIC_BATT_SENSORS] = {0};
 
 	mutex_lock(&mbi->adc_val_lock);
 	if (!is_ttl_valid(adc_ttl) || (sample_count > 1)) {
