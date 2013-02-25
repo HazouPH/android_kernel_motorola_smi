@@ -1708,7 +1708,7 @@ static void dlp_driver_cleanup(void)
  * DLP protocol driver, creates the related TTY port and TTY entry in the
  * filesystem.
  */
-static int __init dlp_driver_probe(struct device *dev)
+static int dlp_driver_probe(struct device *dev)
 {
 	/* The parent of our device is the HSI port,
 	 * the parent of the HSI port is the HSI controller device */
@@ -1782,7 +1782,7 @@ cleanup:
  * This function is freeing all resources hold by the context attached to the
  * requesting HSI device.
  */
-static int __exit dlp_driver_remove(struct device *dev)
+static int dlp_driver_remove(struct device *dev)
 {
 	struct hsi_client *client = to_hsi_client(dev);
 
