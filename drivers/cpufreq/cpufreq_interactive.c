@@ -66,6 +66,11 @@ static cpumask_t speedchange_cpumask;
 static spinlock_t speedchange_cpumask_lock;
 static struct mutex gov_lock;
 
+/*
+ * Frequency to which a touch boost takes the cpus to
+ */
+static unsigned long touchboost_freq;
+
 /* Hi speed to bump to from lo speed when load burst (default max) */
 static unsigned int hispeed_freq;
 
@@ -601,7 +606,7 @@ static void cpufreq_interactive_boost(void)
 		 * validated.
 		 */
 
-		pcpu->floor_freq = hispeed_freq;
+		pcpu->floor_freq = touchboost_freq;
 		pcpu->floor_validate_time = ktime_to_us(ktime_get());
 		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags[1]);
 	}
@@ -838,6 +843,28 @@ static ssize_t store_go_hispeed_load(struct kobject *kobj,
 
 static struct global_attr go_hispeed_load_attr = __ATTR(go_hispeed_load, 0644,
 		show_go_hispeed_load, store_go_hispeed_load);
+static ssize_t show_touchboost_freq(struct kobject *kobj,
+				 struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", touchboost_freq);
+}
+
+static ssize_t store_touchboost_freq(struct kobject *kobj,
+				  struct attribute *attr,
+				  const char *buf,
+				  size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	touchboost_freq = val;
+	return count;
+}
+static struct global_attr touchboost_freq_attr = __ATTR(touchboost_freq, 0644,
+		show_touchboost_freq, store_touchboost_freq);
 
 static ssize_t show_min_sample_time(struct kobject *kobj,
 				struct attribute *attr, char *buf)
@@ -989,6 +1016,7 @@ static struct attribute *interactive_attributes[] = {
 	&timer_slack.attr,
 	&boost.attr,
 	&boostpulse.attr,
+	&touchboost_freq_attr.attr,
 	&boostpulse_duration.attr,
 	NULL,
 };
