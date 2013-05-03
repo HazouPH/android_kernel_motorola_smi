@@ -30,6 +30,7 @@
  *
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #define REALLY_WANT_TRACEPOINTS
 
 #include <linux/module.h>
@@ -77,7 +78,7 @@ static unsigned long lowmem_deathpending_timeout;
 #define lowmem_print(level, x...)			\
 	do {						\
 		if (lowmem_debug_level >= (level))	\
-			printk(x);			\
+			pr_info(x);			\
 	} while (0)
 
 static int test_task_flag(struct task_struct *p, int flag)
@@ -167,7 +168,6 @@ struct zone_avail {
 	unsigned long free;
 	unsigned long file;
 };
-
 
 void tune_lmk_zone_param(struct zonelist *zonelist, int classzone_idx,
 					int *other_free, int *other_file,
@@ -328,14 +328,12 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	if (lowmem_minfree_size < array_size)
 		array_size = lowmem_minfree_size;
 	for (i = 0; i < array_size; i++) {
-
 #ifdef CONFIG_ANDROID_LMK_PARAM_AUTO_TUNE
 		zone_adj = lowmem_zone_adj(i, high_zoneidx);
 		minfree = lowmem_minfree[i] - zone_adj;
 #else
 		minfree = lowmem_minfree[i];
 #endif
-
 		if (other_free < minfree && other_file < minfree) {
 			min_score_adj = lowmem_adj[i];
 			break;
@@ -361,7 +359,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	selected_oom_score_adj = min_score_adj;
 
 	rcu_read_lock();
-
 	for_each_process(tsk) {
 		struct task_struct *p;
 		int oom_score_adj;
@@ -423,15 +420,16 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		selected = p;
 		selected_tasksize = tasksize;
 		selected_oom_score_adj = oom_score_adj;
-		lowmem_print(2, "select %d (%s), adj %d, size %d, to kill\n",
-			     p->pid, p->comm, oom_score_adj, tasksize);
+		lowmem_print(2, "select '%s' (%d), adj %d, size %d, to kill\n",
+			     p->comm, p->pid, oom_score_adj, tasksize);
 	}
 	if (selected) {
 		lowmem_print(1, "Killing '%s' (%d), adj %d,\n" \
 				"   to free %ldkB on behalf of '%s' (%d) because\n" \
 				"   cache %ldkB is below limit %ldkB for oom_score_adj %d\n" \
 				"   Free memory is %ldkB above reserved\n",
-			     selected->comm, selected->pid, selected_oom_score_adj,
+			     selected->comm, selected->pid,
+			     selected_oom_score_adj,
 			     selected_tasksize * (long)(PAGE_SIZE / 1024),
 			     current->comm, current->pid,
 			     other_file * (long)(PAGE_SIZE / 1024),
@@ -464,11 +462,9 @@ static struct shrinker lowmem_shrinker = {
 static int __init lowmem_init(void)
 {
 	register_shrinker(&lowmem_shrinker);
-
 #ifdef CONFIG_ANDROID_LMK_PARAM_AUTO_TUNE
 	lowmem_zone_adj_init();
 #endif
-
 	return 0;
 }
 
@@ -554,7 +550,6 @@ static const struct kparam_array __param_arr_adj = {
 };
 #endif
 
-
 module_param_named(cost, lowmem_shrinker.seeks, int, S_IRUGO | S_IWUSR);
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 __module_param_call(MODULE_PARAM_PREFIX, adj,
@@ -566,11 +561,9 @@ __MODULE_PARM_TYPE(adj, "array of int");
 module_param_array_named(adj, lowmem_adj, int, &lowmem_adj_size,
 			 S_IRUGO | S_IWUSR);
 #endif
-
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
-
 #ifdef CONFIG_ANDROID_LMK_PARAM_AUTO_TUNE
 module_param_named(lmk_fast_run, lmk_fast_run, int, S_IRUGO | S_IWUSR);
 #endif
