@@ -2720,7 +2720,7 @@ static unsigned char battery_is_cpyrght_vld(void)
 }
 
 
-static int __init sfi_table_populate_oem1(struct sfi_table_header *table)
+static int sfi_table_populate_oem1(struct sfi_table_header *table)
 {
 	struct sfi_table_simple *sb;
 	struct msic_batt_sfi_prop_oem1 *pentry;
@@ -2904,7 +2904,7 @@ static void  mfld_umip_read_termination_current(u16 *term_curr)
  * SFI table has entries for the temperature limits
  * which is populated in a local structure
  */
-static int __init sfi_table_populate(struct sfi_table_header *table)
+static int sfi_table_populate(struct sfi_table_header *table)
 {
 	struct sfi_table_simple *sb;
 	struct msic_batt_sfi_prop *pentry;
