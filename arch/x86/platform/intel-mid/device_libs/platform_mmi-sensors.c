@@ -83,9 +83,6 @@ static struct ct406_platform_data mp_ct406_pdata = {
 	.ct406_prox_recalibrate_offset = 0x0046,
 	.ct406_prox_pulse_count = 0x04,
 	.ct406_prox_offset = 0x00,
-
-	.ip_prox_limit = 0x200,
-	.ip_als_limit = 10,
 };
 
 
