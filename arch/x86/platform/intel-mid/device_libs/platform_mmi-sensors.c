@@ -72,12 +72,12 @@ static struct ct406_platform_data mp_ct406_pdata = {
 	.regulator_name = "",
 	.prox_samples_for_noise_floor = 0x05,
 
-	.ct406_prox_saturation_threshold = 0x0208,
 	.ct406_prox_covered_offset = 0x0096,
 	.ct406_prox_uncovered_offset = 0x006e,
 	.ct406_prox_recalibrate_offset = 0x0046,
 	.ct406_prox_pulse_count = 0x04,
 	.ct406_prox_offset = 0x00,
+	.ink_type = 0x00,
 };
 
 
