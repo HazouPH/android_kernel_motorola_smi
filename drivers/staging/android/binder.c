@@ -1371,8 +1371,9 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 		struct flat_binder_object *fp;
 		if (*offp > buffer->data_size - sizeof(*fp) ||
 		    buffer->data_size < sizeof(*fp) ||
-		    !IS_ALIGNED(*offp, sizeof(void *))) {
-			printk(KERN_ERR "binder: transaction release %d bad"
+		    !IS_ALIGNED(*offp, sizeof(u32))) {
+			binder_debug(BINDER_DEBUG_TOP_ERRORS,
+					"binder: transaction release %d bad"
 					"offset %zd, size %zd\n", debug_id,
 					*offp, buffer->data_size);
 			continue;
