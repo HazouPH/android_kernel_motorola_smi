@@ -284,7 +284,6 @@ static void freeque(struct ipc_namespace *ns, struct kern_ipc_perm *ipcp)
 	expunge_all(msq, -EIDRM);
 	ss_wakeup(&msq->q_senders, 1);
 	msg_rmid(ns, msq);
-	msg_unlock(msq);
 
 	tmp = msq->q_messages.next;
 	while (tmp != &msq->q_messages) {
@@ -297,6 +296,7 @@ static void freeque(struct ipc_namespace *ns, struct kern_ipc_perm *ipcp)
 	atomic_sub(msq->q_cbytes, &ns->msg_bytes);
 	security_msg_queue_free(msq);
 	ipc_rcu_putref(msq);
+	msg_unlock(msq);
 }
 
 /*
