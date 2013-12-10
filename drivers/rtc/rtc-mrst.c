@@ -472,7 +472,6 @@ vrtc_mrst_do_probe(struct device *dev, struct resource *iomem, int rtc_irq)
 	rename_region(iomem, dev_name(&mrst_rtc.rtc->dev));
 
 	spin_lock_irq(&rtc_lock);
-	mrst_irq_disable(&mrst_rtc, RTC_PIE | RTC_AIE);
 	rtc_control = vrtc_cmos_read(RTC_CONTROL);
 	spin_unlock_irq(&rtc_lock);
 
@@ -659,10 +658,6 @@ static int __devexit vrtc_mrst_platform_remove(struct platform_device *pdev)
 
 static void vrtc_mrst_platform_shutdown(struct platform_device *pdev)
 {
-	if (system_state == SYSTEM_POWER_OFF && !mrst_poweroff(&pdev->dev))
-		return;
-
-	rtc_mrst_do_shutdown();
 }
 
 MODULE_ALIAS("platform:vrtc_mrst");
