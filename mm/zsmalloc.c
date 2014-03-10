@@ -1195,13 +1195,16 @@ static int zs_register_cpu_notifier(void)
 {
 	int cpu, uninitialized_var(ret);
 
-	register_cpu_notifier(&zs_cpu_nb);
+	cpu_notifier_register_begin();
+
+	__register_cpu_notifier(&zs_cpu_nb);
 	for_each_online_cpu(cpu) {
 		ret = zs_cpu_notifier(NULL, CPU_UP_PREPARE, (void *)(long)cpu);
 		if (notifier_to_errno(ret))
 			break;
 	}
 
+	cpu_notifier_register_done();
 	return notifier_to_errno(ret);
 }
 
@@ -1209,9 +1212,13 @@ static void zs_unregister_cpu_notifier(void)
 {
 	int cpu;
 
+	cpu_notifier_register_begin();
+
 	for_each_online_cpu(cpu)
 		zs_cpu_notifier(NULL, CPU_DEAD, (void *)(long)cpu);
-	unregister_cpu_notifier(&zs_cpu_nb);
+	__unregister_cpu_notifier(&zs_cpu_nb);
+
+	cpu_notifier_register_done();
 }
 
 static void init_zs_size_classes(void)
