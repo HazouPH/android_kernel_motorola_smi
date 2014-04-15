@@ -9,6 +9,7 @@
 #include <linux/list.h>
 #include <linux/sysctl.h>
 
+#include <net/flow.h>
 #include <net/netns/core.h>
 #include <net/netns/mib.h>
 #include <net/netns/unix.h>
@@ -101,7 +102,6 @@ struct net {
 #endif
 	struct netns_ipvs	*ipvs;
 };
-
 
 #include <linux/seq_file_net.h>
 
