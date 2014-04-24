@@ -248,8 +248,8 @@ int ping_init_sock(struct sock *sk)
 	struct net *net = sock_net(sk);
 	gid_t group = current_egid();
 	gid_t range[2];
-	struct group_info *group_info = get_current_groups();
-	int i, j, count = group_info->ngroups;
+	struct group_info *group_info;
+	int i, j, count;
 	int ret = 0;
 
 	inet_get_ping_group_range_net(net, range, range+1);
@@ -270,7 +270,7 @@ int ping_init_sock(struct sock *sk)
 		count -= cp_count;
 	}
 
-	return -EACCES;
+	ret = -EACCES;
 
 out_release_group:
 	put_group_info(group_info);
