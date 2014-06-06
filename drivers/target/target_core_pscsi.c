@@ -834,10 +834,7 @@ static inline void pscsi_blk_init_request(
 	struct request *req,
 	int bidi_read)
 {
-	/*
-	 * Defined as "scsi command" in include/linux/blkdev.h.
-	 */
-	req->cmd_type = REQ_TYPE_BLOCK_PC;
+	blk_rq_set_block_pc(req);
 	/*
 	 * For the extra BIDI-COMMAND READ struct request we do not
 	 * need to setup the remaining structure members
