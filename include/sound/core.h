@@ -120,8 +120,6 @@ struct snd_card {
 	int user_ctl_count;		/* count of all user controls */
 	struct list_head controls;	/* all controls for this card */
 	struct list_head ctl_files;	/* active control files */
-	struct mutex user_ctl_lock;	/* protects user controls against
-					   concurrent access */
 
 	struct snd_info_entry *proc_root;	/* root for soundcard specific files */
 	struct snd_info_entry *proc_id;	/* the card id */
@@ -147,6 +145,10 @@ struct snd_card {
 #if defined(CONFIG_SND_MIXER_OSS) || defined(CONFIG_SND_MIXER_OSS_MODULE)
 	struct snd_mixer_oss *mixer_oss;
 	int mixer_oss_change_count;
+#endif
+#ifndef __GENKSYMS__
+	struct mutex user_ctl_lock;	/* protects user controls against
+					   concurrent access */
 #endif
 };
 
