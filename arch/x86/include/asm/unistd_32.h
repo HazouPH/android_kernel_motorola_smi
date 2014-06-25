@@ -353,10 +353,11 @@
 #define __NR_sendmmsg		345
 #define __NR_setns		346
 #define __NR_finit_module       350
+#define __NR_seccomp            354
 
 #ifdef __KERNEL__
 
-#define NR_syscalls 351
+#define NR_syscalls 355
 
 #define __ARCH_WANT_IPC_PARSE_VERSION
 #define __ARCH_WANT_OLD_READDIR

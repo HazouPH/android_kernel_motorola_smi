@@ -350,3 +350,7 @@ ENTRY(sys_call_table)
         .long sys_ni_syscall
         .long sys_ni_syscall
 	.long sys_finit_module		/* 350 */
+        .long sys_ni_syscall
+        .long sys_ni_syscall
+        .long sys_ni_syscall
+	.long sys_seccomp
