@@ -667,7 +667,7 @@ static struct dentry *clk_debugfs_register_dir(struct clk *c,
 
 err_out:
 	d = clk_d;
-	list_for_each_entry_safe(child, child_tmp, &d->d_subdirs, d_u.d_child)
+	list_for_each_entry_safe(child, child_tmp, &d->d_subdirs, d_child)
 		debugfs_remove(child);
 	debugfs_remove(clk_d);
 	return NULL;
@@ -678,7 +678,7 @@ static void clk_debugfs_remove_dir(struct dentry *cdentry)
 	struct dentry *d, *child, *child_tmp;
 
 	d = cdentry;
-	list_for_each_entry_safe(child, child_tmp, &d->d_subdirs, d_u.d_child)
+	list_for_each_entry_safe(child, child_tmp, &d->d_subdirs, d_child)
 		debugfs_remove(child);
 	debugfs_remove(cdentry);
 	return ;
