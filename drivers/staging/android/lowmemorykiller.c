@@ -184,6 +184,7 @@ void tune_lmk_zone_param(struct zonelist *zonelist, int classzone_idx,
 		za->free = zone_page_state(zone, NR_FREE_PAGES);
 		za->file = zone_page_state(zone, NR_FILE_PAGES)
 					- zone_page_state(zone, NR_SHMEM);
+                                        - zone_page_state(zone, NR_SWAPCACHE);
 		if (zone_idx == ZONE_MOVABLE) {
 			continue;
 		}
