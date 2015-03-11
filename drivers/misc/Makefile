@@ -60,3 +60,4 @@ obj-$(CONFIG_SCU_LOGGING)	+= intel_fabric_logging.o
 obj-$(CONFIG_UUID)	+= uuid.o
 obj-$(CONFIG_SENSORS_LIS3DH)    += lis3dh.o
 obj-$(CONFIG_SENSORS_L3G4200D)  += l3g4200d.o
+obj-$(CONFIG_UID_CPUTIME) += uid_cputime.o
