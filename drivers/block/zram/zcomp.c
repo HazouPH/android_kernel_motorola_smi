@@ -90,6 +90,11 @@ ssize_t zcomp_available_show(const char *comp, char *buf)
 	return sz;
 }
 
+bool zcomp_available_algorithm(const char *comp)
+{
+	return find_backend(comp) != NULL;
+}
+
 struct zcomp_strm *zcomp_strm_find(struct zcomp *comp)
 {
 	return *get_cpu_ptr(comp->stream);
