@@ -73,5 +73,4 @@ obj-$(CONFIG_INTEL_MEI)		+= mei/
 obj-$(CONFIG_MFD_NVEC)		+= nvec/
 obj-$(CONFIG_DRM_INTEL_MID)     += intel_media/
 obj-$(CONFIG_TOOL_MATRIX)	+=matrix/
-obj-$(CONFIG_DRM_INTEL_HANDSET) += mrfl/
 obj-$(CONFIG_ST_FM)             += ti-st/
