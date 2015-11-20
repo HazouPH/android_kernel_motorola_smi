@@ -14,6 +14,7 @@
 #include <linux/backing-dev.h>
 #include <linux/sysctl.h>
 #include <linux/sysfs.h>
+#include <linux/earlysuspend.h>
 #include "internal.h"
 
 #define CREATE_TRACE_POINTS
@@ -694,7 +695,7 @@ static int compact_node(int nid, bool sync)
 			.nr_freepages = 0,
 			.nr_migratepages = 0,
 			.order = -1,
-            .sync = sync,
+			.sync = sync,
 		};
 
 		zone = &pgdat->node_zones[zoneid];
@@ -724,6 +725,26 @@ int compact_nodes(bool sync)
 
 	return COMPACT_COMPLETE;
 }
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void compact_nodes_suspend(struct early_suspend *s)
+{
+	/* No point in being gun shy here since compact_zone()
+	 * will check suitability of compaction run per zone.
+	 * This takes about 150ms for 2GB memory configuration,
+	 * but the benefit is a better memory situation on wakeup.
+	 * The user isn't doing anything useful anyway, and the
+	 * screen is off so there's no perceived user impact.
+         */
+	compact_nodes(true);
+}
+
+static struct early_suspend early_suspend_compaction_desc = {
+ 	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+	.suspend = compact_nodes_suspend,
+ 	.resume = NULL,
+ };
+#endif /* CONFIG_HAS_EARLYSUSPEND */
 
 /* The written value is actually unused, all memory is compacted */
 int sysctl_compact_memory;
@@ -767,3 +788,12 @@ void compaction_unregister_node(struct node *node)
 	return sysdev_remove_file(&node->sysdev, &attr_compact);
 }
 #endif /* CONFIG_SYSFS && CONFIG_NUMA */
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static int  __init mem_compaction_init(void)
+{
+	register_early_suspend(&early_suspend_compaction_desc);
+	return 0;
+}
+late_initcall(mem_compaction_init);
+#endif /* CONFIG_HAS_EARLYSUSPEND */
