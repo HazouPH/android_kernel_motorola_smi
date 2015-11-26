@@ -1887,6 +1887,10 @@ static void msic_batt_temp_charging(struct work_struct *work)
 		(mbi->usr_chrg_enbl == USER_SET_CHRG_LMT2) ||
 		(mbi->usr_chrg_enbl == USER_SET_CHRG_LMT3)) {
 		vinlimit = CHRCNTL_VINLMT_500;	/* VINILMT set to 500mA */
+        } else if (mbi->usr_chrg_enbl == USER_SET_CHRG_OVERRIDE_950) {
+                vinlimit = CHRCNTL_VINLMT_950;
+        } else if (mbi->usr_chrg_enbl == USER_SET_CHRG_OVERRIDE_NOLMT) {
+                vinlimit = CHRCNTL_VINLMT_NOLMT;
 	} else {
 		/* D7,D6 bits of CHRCNTL will set the VINILMT */
 		if (charge_param.vinilmt > 950)
@@ -1902,7 +1906,7 @@ static void msic_batt_temp_charging(struct work_struct *work)
 	/* input current limit can be changed
 	 * due to VINREG or weakVIN conditions
 	 */
-	if (mbi->in_cur_lmt < vinlimit)
+	if (mbi->in_cur_lmt < vinlimit && mbi->usr_chrg_enbl < USER_SET_CHRG_OVERRIDE_950)
 		vinlimit = mbi->in_cur_lmt;
 	/*
 	 * Check for Charge full condition and set the battery
@@ -2643,7 +2647,7 @@ static ssize_t set_chrg_enable(struct device *dev,
 		return -EINVAL;
 
 	/* Allow only 0 to 4 for writing */
-	if (value < USER_SET_CHRG_DISABLE || value > USER_SET_CHRG_NOLMT)
+	if (value < USER_SET_CHRG_DISABLE || value > USER_SET_CHRG_OVERRIDE_NOLMT)
 		return -EINVAL;
 
 	mutex_lock(&mbi->event_lock);
@@ -2698,7 +2702,7 @@ static ssize_t set_chrg_enable(struct device *dev,
 	return count;
 }
 
-static unsigned char battery_is_cpyrght_vld()
+static unsigned char battery_is_cpyrght_vld(void)
 {
 	if (strncmp((const char *)
 		(&sfi_table_oem1->EpromData)+CPYRGHT_STRING_PART_1_LEN,
@@ -3329,7 +3333,7 @@ static int msic_battery_probe(struct ipc_device *ipcdev)
 
 	strncpy(msic_hw_rev_txt_version, revision_name, 8);
 	dev_info(msic_dev, "MSIC - TI AvP %s\n", revision_name);
-	msic_hw_rev_txt_version[8] = 0;
+	msic_hw_rev_txt_version[7] = 0;
 
 	retval = intel_scu_ipc_ioread8(0x000,  &msic_hw_rev_txt_rev1);
 	dev_info(msic_dev, "ID0 = 0x%x, retval=%d", msic_hw_rev_txt_rev1,
