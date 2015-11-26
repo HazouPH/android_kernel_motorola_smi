@@ -1026,7 +1026,7 @@ mt9e013_get_intg_factor(struct i2c_client *client,
 static int mt9e013_q_exposure(struct v4l2_subdev *sd, s32 *value)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	u16 coarse;
+	u16 coarse = 0;
 	int ret;
 
 	/* the fine integration time is currently not calculated */
@@ -1433,7 +1433,8 @@ static int nearest_resolution_index(int w, int h)
 		}
 		if (idx != -1)
 			break;
-		m = LONG_MAX;
+		//m = LONG_MAX;
+		m = ((1 << 15) - 1);
 	}
 	return idx;
 }
