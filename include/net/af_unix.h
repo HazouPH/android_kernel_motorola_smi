@@ -58,11 +58,42 @@ struct unix_sock {
 	unsigned int		gc_maybe_cycle : 1;
 	unsigned char		recursion_level;
 	struct socket_wq	peer_wq;
-	wait_queue_t		peer_wake;
 };
 #define unix_sk(__sk) ((struct unix_sock *)__sk)
 
 #define peer_wait peer_wq.wait
+
+struct unix_peer_wake {
+	wait_queue_t		wq;
+	struct unix_sock	*sk;
+};
+
+static inline wait_queue_t *get_peer_wake(struct unix_sock *usk)
+{
+	struct unix_peer_wake *pw;
+
+	pw = *((struct unix_peer_wake **)&usk->sk.__sk_common.skc_daddr);
+	return &pw->wq;
+}
+
+static inline void set_peer_wake(struct unix_sock *usk,
+				 struct unix_peer_wake *pw)
+{
+	pw->sk = usk;
+	*((struct unix_peer_wake **)&usk->sk.__sk_common.skc_daddr) = pw;
+}
+
+static inline struct unix_sock *get_peer_wake_sk(wait_queue_t *q)
+{
+	struct unix_peer_wake *pw = container_of(q, struct unix_peer_wake, wq);
+
+	return pw->sk;
+}
+
+static inline void unix_release_peer_wake(struct unix_sock *usk)
+{
+	kfree(*((struct unix_peer_wake **)&usk->sk.__sk_common.skc_daddr));
+}
 
 #ifdef CONFIG_SYSCTL
 extern int unix_sysctl_register(struct net *net);

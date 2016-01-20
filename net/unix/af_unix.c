@@ -334,11 +334,11 @@ static int unix_dgram_peer_wake_relay(wait_queue_t *q, unsigned mode, int flags,
 	struct unix_sock *u;
 	wait_queue_head_t *u_sleep;
 
-	u = container_of(q, struct unix_sock, peer_wake);
+	u = get_peer_wake_sk(q);
 
-	__remove_wait_queue(&unix_sk(u->peer_wake.private)->peer_wait,
+	__remove_wait_queue(&unix_sk(get_peer_wake(u)->private)->peer_wait,
 			    q);
-	u->peer_wake.private = NULL;
+	get_peer_wake(u)->private = NULL;
 
 	/* relaying can only happen while the wq still exists */
 	u_sleep = sk_sleep(&u->sk);
@@ -358,9 +358,9 @@ static int unix_dgram_peer_wake_connect(struct sock *sk, struct sock *other)
 	rc = 0;
 	spin_lock(&u_other->peer_wait.lock);
 
-	if (!u->peer_wake.private) {
-		u->peer_wake.private = other;
-		__add_wait_queue(&u_other->peer_wait, &u->peer_wake);
+	if (!get_peer_wake(u)->private) {
+		get_peer_wake(u)->private = other;
+		__add_wait_queue(&u_other->peer_wait, get_peer_wake(u));
 
 		rc = 1;
 	}
@@ -378,9 +378,9 @@ static void unix_dgram_peer_wake_disconnect(struct sock *sk,
 	u_other = unix_sk(other);
 	spin_lock(&u_other->peer_wait.lock);
 
-	if (u->peer_wake.private == other) {
-		__remove_wait_queue(&u_other->peer_wait, &u->peer_wake);
-		u->peer_wake.private = NULL;
+	if (get_peer_wake(u)->private == other) {
+		__remove_wait_queue(&u_other->peer_wait, get_peer_wake(u));
+		get_peer_wake(u)->private = NULL;
 	}
 
 	spin_unlock(&u_other->peer_wait.lock);
@@ -472,6 +472,7 @@ static void unix_sock_destructor(struct sock *sk)
 
 	if (u->addr)
 		unix_release_addr(u->addr);
+	unix_release_peer_wake(u);
 
 	atomic_long_dec(&unix_nr_socks);
 	local_bh_disable();
@@ -720,6 +721,11 @@ static struct sock *unix_create1(struct net *net, struct socket *sock)
 {
 	struct sock *sk = NULL;
 	struct unix_sock *u;
+	struct unix_peer_wake *pw;
+
+	pw = kmalloc(sizeof(*pw), GFP_KERNEL);
+	if (!pw)
+		return NULL;
 
 	atomic_long_inc(&unix_nr_socks);
 	if (atomic_long_read(&unix_nr_socks) > 2 * get_max_files())
@@ -744,12 +750,14 @@ static struct sock *unix_create1(struct net *net, struct socket *sock)
 	INIT_LIST_HEAD(&u->link);
 	mutex_init(&u->readlock); /* single task reading lock */
 	init_waitqueue_head(&u->peer_wait);
-	init_waitqueue_func_entry(&u->peer_wake, unix_dgram_peer_wake_relay);
+	set_peer_wake(u, pw);
+	init_waitqueue_func_entry(get_peer_wake(u), unix_dgram_peer_wake_relay);
 	unix_insert_socket(unix_sockets_unbound, sk);
 out:
-	if (sk == NULL)
+	if (sk == NULL) {
 		atomic_long_dec(&unix_nr_socks);
-	else {
+		kfree(pw);
+	} else {
 		local_bh_disable();
 		sock_prot_inuse_add(sock_net(sk), sk->sk_prot, 1);
 		local_bh_enable();
