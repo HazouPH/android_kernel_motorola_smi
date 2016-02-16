@@ -407,7 +407,8 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		}
 		tasksize = get_mm_rss(p->mm);
 #ifdef CONFIG_ZRAM
-		tasksize += get_mm_counter(p->mm, MM_SWAPENTS);
+		tasksize += get_mm_counter(p->mm, MM_SWAPENTS) +
+			   p->mm->nr_ptes;
 #endif
 		task_unlock(p);
 		if (tasksize <= 0)
