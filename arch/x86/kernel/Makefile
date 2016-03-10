@@ -34,6 +34,7 @@ GCOV_PROFILE_paravirt.o		:= n
 
 # vread_tsc_64 is hot and should be fully optimized:
 CFLAGS_REMOVE_vread_tsc_64.o = -pg -fno-optimize-sibling-calls
+CFLAGS_REMOVE_SSEPlus_float_REF.o += -mno-sse -mno-mmx -mno-sse2 -msoft-float
 
 obj-y			:= process_$(BITS).o signal.o entry_$(BITS).o
 obj-$(CONFIG_MUDFLAP)   += mudflap.o
@@ -51,6 +52,7 @@ obj-y			+= alternative.o i8253.o pci-nommu.o hw_breakpoint.o
 obj-y			+= tsc.o io_delay.o rtc.o
 obj-y			+= pci-iommu_table.o
 obj-y			+= resource.o
+obj-y			+= SSEPlus_float_REF.o SSEPlus_ssse3_REF.o SSEPlus_sse4_REF.o SSEPlus_utils.o
 
 obj-y				+= trampoline.o trampoline_$(BITS).o
 obj-y				+= process.o
