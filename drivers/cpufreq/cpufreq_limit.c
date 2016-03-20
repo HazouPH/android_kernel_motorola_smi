@@ -43,7 +43,8 @@ err:
 static ssize_t show_limited_min_freq(struct kobject *kobj,
 			struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", limited_min_freq);
+	return sprintf(buf, "%u\n",
+			limited_min_freq == MSM_CPUFREQ_NO_LIMIT ? 384000 : limited_min_freq);
 }
 
 static ssize_t store_limited_min_freq(struct kobject *kobj,
@@ -80,7 +81,8 @@ static struct global_attr limited_min_freq_attr = __ATTR(limited_min_freq,
 static ssize_t show_limited_max_freq(struct kobject *kobj,
 			struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", limited_max_freq);
+	return sprintf(buf, "%u\n",
+			limited_max_freq == MSM_CPUFREQ_NO_LIMIT ? 1512000 : limited_max_freq);
 }
 
 static ssize_t store_limited_max_freq(struct kobject *kobj,
