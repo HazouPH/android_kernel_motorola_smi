@@ -1059,6 +1059,7 @@ static inline void hci_cs_inquiry(struct hci_dev *hdev, __u8 status)
 
 	if (status) {
 		hci_req_complete(hdev, HCI_OP_INQUIRY, status);
+
 		hci_conn_check_pending(hdev);
 	} else {
 		set_bit(HCI_INQUIRY, &hdev->flags);
@@ -1588,13 +1589,13 @@ static inline void hci_inquiry_complete_evt(struct hci_dev *hdev, struct sk_buff
 	BT_DBG("%s status %d", hdev->name, status);
 
 	if (!lmp_le_capable(hdev))
-		clear_bit(HCI_INQUIRY, &hdev->flags);	
+		clear_bit(HCI_INQUIRY, &hdev->flags);
 
 	hci_req_complete(hdev, HCI_OP_INQUIRY, status);
 	hci_dev_lock(hdev);
 
 	if (test_bit(HCI_MGMT, &hdev->flags))
-                mgmt_inquiry_complete_evt(hdev->id, status);
+		mgmt_inquiry_complete_evt(hdev->id, status);
 	hci_dev_unlock(hdev);
 
 	if (!lmp_le_capable(hdev))
@@ -2928,7 +2929,7 @@ static inline void hci_sync_conn_complete_evt(struct hci_dev *hdev, struct sk_bu
 		hci_conn_hold_device(conn);
 		hci_conn_add_sysfs(conn);
 		break;
-	case 0x10:	/* Connection Accept Timeout Exceeded */
+
 	case 0x11:	/* Unsupported Feature or Parameter Value */
 	case 0x1c:	/* SCO interval rejected */
 	case 0x1a:	/* Unsupported Remote Feature */
@@ -2958,6 +2959,7 @@ static inline void hci_sync_conn_complete_evt(struct hci_dev *hdev, struct sk_bu
 			hci_send_cmd(conn->hdev,
 				HCI_OP_SETUP_SYNC_CONN, sizeof(cp), &cp);
 
+			hci_setup_sync(conn, conn->link->handle);
 			goto unlock;
 		}
 		/* fall through */
@@ -3162,8 +3164,7 @@ static inline void hci_simple_pair_complete_evt(struct hci_dev *hdev, struct sk_
 	 * initiated the authentication. A traditional auth_complete
 	 * event gets always produced as initiator and is also mapped to
 	 * the mgmt_auth_failed event */
-	if (!test_bit(HCI_CONN_AUTH_PEND, &conn->pend) && ev->status != 0
-						&& conn->ssp_mode > 0)
+	if (!test_bit(HCI_CONN_AUTH_PEND, &conn->pend) && ev->status != 0)
 		mgmt_auth_failed(hdev->id, &conn->dst, ev->status);
 
 	hci_conn_put(conn);
