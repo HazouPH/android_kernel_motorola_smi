@@ -849,7 +849,7 @@ struct inode {
 	struct posix_acl	*i_default_acl;
 #endif
 
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
+#ifdef CONFIG_FS_ENCRYPTION
 	struct fscrypt_info	*i_crypt_info;
 #endif
 

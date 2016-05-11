@@ -220,7 +220,7 @@ static inline bool fscrypt_is_dot_dotdot(const struct qstr *str)
 
 static inline struct page *fscrypt_control_page(struct page *page)
 {
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
+#ifdef CONFIG_FS_ENCRYPTION
 	return ((struct fscrypt_ctx *)page_private(page))->w.control_page;
 #else
 	WARN_ON_ONCE(1);
@@ -230,7 +230,7 @@ static inline struct page *fscrypt_control_page(struct page *page)
 
 static inline int fscrypt_has_encryption_key(struct inode *inode)
 {
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
+#ifdef CONFIG_FS_ENCRYPTION
 	return (inode->i_crypt_info != NULL);
 #else
 	return 0;
@@ -239,25 +239,25 @@ static inline int fscrypt_has_encryption_key(struct inode *inode)
 
 static inline void fscrypt_set_encrypted_dentry(struct dentry *dentry)
 {
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
+#ifdef CONFIG_FS_ENCRYPTION
 	spin_lock(&dentry->d_lock);
 	dentry->d_flags |= DCACHE_ENCRYPTED_WITH_KEY;
 	spin_unlock(&dentry->d_lock);
 #endif
 }
 
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
+#ifdef CONFIG_FS_ENCRYPTION
 extern const struct dentry_operations fscrypt_d_ops;
 #endif
 
 static inline void fscrypt_set_d_op(struct dentry *dentry)
 {
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
+#ifdef CONFIG_FS_ENCRYPTION
 	d_set_d_op(dentry, &fscrypt_d_ops);
 #endif
 }
 
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
+#ifdef CONFIG_FS_ENCRYPTION
 /* crypto.c */
 extern struct kmem_cache *fscrypt_info_cachep;
 int fscrypt_initialize(void);
