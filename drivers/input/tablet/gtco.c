@@ -837,7 +837,7 @@ static int gtco_probe(struct usb_interface *usbinterface,
 	gtco->inputdevice = input_dev;
 
 	/* Save interface information */
-	gtco->usbdev = usb_get_dev(interface_to_usbdev(usbinterface));
+	gtco->usbdev = interface_to_usbdev(usbinterface);
 
 	/* Allocate some data for incoming reports */
 	gtco->buffer = usb_alloc_coherent(gtco->usbdev, REPORT_MAX_SIZE,
@@ -854,6 +854,14 @@ static int gtco_probe(struct usb_interface *usbinterface,
 		err("Failed to allocate URB");
 		error = -ENOMEM;
 		goto err_free_buf;
+	}
+
+	/* Sanity check that a device has an endpoint */
+	if (usbinterface->altsetting[0].desc.bNumEndpoints < 1) {
+		dev_err(&usbinterface->dev,
+			"Invalid number of endpoints\n");
+		error = -EINVAL;
+		goto err_free_urb;
 	}
 
 	/*
