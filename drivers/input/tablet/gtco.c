@@ -887,7 +887,7 @@ static int gtco_probe(struct usb_interface *usbinterface,
 	 * HID report descriptor
 	 */
 	if (usb_get_extra_descriptor(usbinterface->cur_altsetting,
-				     HID_DEVICE_TYPE, &hid_desc) != 0){
+				     HID_DEVICE_TYPE, &hid_desc) != 0) {
 		err("Can't retrieve exta USB descriptor to get hid report descriptor length");
 		error = -EIO;
 		goto err_free_urb;
