@@ -52,18 +52,18 @@ static void zcomp_strm_free(struct zcomp *comp, struct zcomp_strm *zstrm)
  * allocate new zcomp_strm structure with ->private initialized by
  * backend, return NULL on error
  */
-static struct zcomp_strm *zcomp_strm_alloc(struct zcomp *comp, gfp_t flags)
+static struct zcomp_strm *zcomp_strm_alloc(struct zcomp *comp)
 {
-	struct zcomp_strm *zstrm = kmalloc(sizeof(*zstrm), flags);
+	struct zcomp_strm *zstrm = kmalloc(sizeof(*zstrm), GFP_KERNEL);
 	if (!zstrm)
 		return NULL;
 
-	zstrm->private = comp->backend->create(flags);
+	zstrm->private = comp->backend->create(GFP_KERNEL);
 	/*
 	 * allocate 2 pages. 1 for compressed data, plus 1 extra for the
 	 * case when compressed size is larger than the original one
 	 */
-	zstrm->buffer = (void *)__get_free_pages(flags | __GFP_ZERO, 1);
+	zstrm->buffer = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, 1);
 	if (!zstrm->private || !zstrm->buffer) {
 		zcomp_strm_free(comp, zstrm);
 		zstrm = NULL;
@@ -127,7 +127,7 @@ static int __zcomp_cpu_notifier(struct zcomp *comp,
 	case CPU_UP_PREPARE:
 		if (WARN_ON(*per_cpu_ptr(comp->stream, cpu)))
 			break;
-		zstrm = zcomp_strm_alloc(comp, GFP_KERNEL);
+		zstrm = zcomp_strm_alloc(comp);
 		if (IS_ERR_OR_NULL(zstrm)) {
 			pr_err("Can't allocate a compression stream\n");
 			return NOTIFY_BAD;
