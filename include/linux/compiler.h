@@ -164,7 +164,7 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
     (typeof(ptr)) (__ptr + (off)); })
 #endif
 
-#include <uapi/linux/types.h>
+#include <asm/types.h>
 
 static __always_inline void __read_once_size(const volatile void *p, void *res, int size)
 {
