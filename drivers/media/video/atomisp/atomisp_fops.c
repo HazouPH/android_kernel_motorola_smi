@@ -22,6 +22,7 @@
  */
 
 #include "atomisp_ioctl.h"
+#include "atomisp_v4l2.h"
 #include "atomisp_cmd.h"
 #include "atomisp_fops.h"
 #include "atomisp_common.h"
@@ -433,6 +434,16 @@ static int atomisp_open(struct file *file)
 
 	/* if (atomisp_get(isp) == NULL) { */
 	mutex_lock(&isp->input_lock);
+
+	/* Deferred firmware loading case. */
+	if (!isp->firmware) {
+		isp->firmware = load_firmware(isp->dev);
+		if (!isp->firmware) {
+			dev_err(isp->dev, "Load firmwares failed\n");
+			ret = -EINVAL;
+			goto error;
+		}
+	}
 
 	if (!isp->input_cnt) {
 		v4l2_err(&atomisp_dev, "no camera attached\n");
