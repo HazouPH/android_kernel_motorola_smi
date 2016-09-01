@@ -453,7 +453,7 @@ void inet6_destroy_sock(struct sock *sk)
 
 	opt = xchg((__force struct ipv6_txoptions **)&np->opt, NULL);
 	if (opt) {
-		atomic_sub(opt->tot_len, &sk->sk_omem_alloc);
+		atomic_sub(opt->tot_len + IPV6_TXOPT_RCU_LEN, &sk->sk_omem_alloc);
 		txopt_put(opt);
 	}
 }

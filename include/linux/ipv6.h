@@ -372,7 +372,7 @@ struct ipv6_pinfo {
 	struct ipv6_ac_socklist	*ipv6_ac_list;
 	struct ipv6_fl_socklist *ipv6_fl_list;
 
-	struct ipv6_txoptions __rcu	*opt;
+	struct ipv6_txoptions __rcu	*opt;	/* KABI hack: points to a member of ipv6_txoptions_rcu */
 	struct sk_buff		*pktoptions;
 	struct sk_buff		*rxpmtu;
 	struct {

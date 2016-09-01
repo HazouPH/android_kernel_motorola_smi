@@ -736,11 +736,13 @@ void ipv6_push_frag_opts(struct sk_buff *skb, struct ipv6_txoptions *opt, u8 *pr
 struct ipv6_txoptions *
 ipv6_dup_options(struct sock *sk, struct ipv6_txoptions *opt)
 {
-	struct ipv6_txoptions *opt2;
+	struct ipv6_txoptions_rcu *opt2_rcu;
 
-	opt2 = sock_kmalloc(sk, opt->tot_len, GFP_ATOMIC);
-	if (opt2) {
+	opt2_rcu = sock_kmalloc(sk, opt->tot_len + IPV6_TXOPT_RCU_LEN, GFP_ATOMIC);
+	if (opt2_rcu) {
+		struct ipv6_txoptions *opt2 = &opt2_rcu->txoptions;
 		long dif = (char*)opt2 - (char*)opt;
+		memset(opt2_rcu, 0, IPV6_TXOPT_RCU_LEN);
 		memcpy(opt2, opt, opt->tot_len);
 		if (opt2->hopopt)
 			*((char**)&opt2->hopopt) += dif;
@@ -750,9 +752,11 @@ ipv6_dup_options(struct sock *sk, struct ipv6_txoptions *opt)
 			*((char**)&opt2->dst1opt) += dif;
 		if (opt2->srcrt)
 			*((char**)&opt2->srcrt) += dif;
-		atomic_set(&opt2->refcnt, 1);
+		atomic_set(&opt2_rcu->refcnt, 1);
+		return opt2;
 	}
-	return opt2;
+	else
+		return NULL;
 }
 
 EXPORT_SYMBOL_GPL(ipv6_dup_options);
@@ -790,6 +794,7 @@ ipv6_renew_options(struct sock *sk, struct ipv6_txoptions *opt,
 	int tot_len = 0;
 	char *p;
 	struct ipv6_txoptions *opt2;
+	struct ipv6_txoptions_rcu *opt2_rcu;
 	int err;
 
 	if (opt) {
@@ -810,12 +815,13 @@ ipv6_renew_options(struct sock *sk, struct ipv6_txoptions *opt,
 		return NULL;
 
 	tot_len += sizeof(*opt2);
-	opt2 = sock_kmalloc(sk, tot_len, GFP_ATOMIC);
-	if (!opt2)
+	opt2_rcu = sock_kmalloc(sk, tot_len + IPV6_TXOPT_RCU_LEN, GFP_ATOMIC);
+	if (!opt2_rcu)
 		return ERR_PTR(-ENOBUFS);
 
-	memset(opt2, 0, tot_len);
-	atomic_set(&opt2->refcnt, 1);
+	memset(opt2_rcu, 0, tot_len + IPV6_TXOPT_RCU_LEN);
+	atomic_set(&opt2_rcu->refcnt, 1);
+	opt2 = &opt2_rcu->txoptions;
 	opt2->tot_len = tot_len;
 	p = (char *)(opt2 + 1);
 
@@ -850,7 +856,7 @@ ipv6_renew_options(struct sock *sk, struct ipv6_txoptions *opt,
 
 	return opt2;
 out:
-	sock_kfree_s(sk, opt2, opt2->tot_len);
+	sock_kfree_s(sk, opt2_rcu, opt2->tot_len + IPV6_TXOPT_RCU_LEN);
 	return ERR_PTR(err);
 }
 
