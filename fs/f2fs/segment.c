@@ -535,10 +535,10 @@ int f2fs_issue_flush(struct f2fs_sb_info *sbi)
 		struct bio *bio = f2fs_bio_alloc(0);
 		int ret;
 
-		atomic_inc(&fcc->submit_flush);
+		if (test_opt(sbi, FLUSH_MERGE)) atomic_inc(&fcc->submit_flush);
 		bio->bi_bdev = sbi->sb->s_bdev;
 		ret = __submit_bio_wait(WRITE_FLUSH, bio);
-		atomic_dec(&fcc->submit_flush);
+		if (test_opt(sbi, FLUSH_MERGE)) atomic_dec(&fcc->submit_flush);
 		bio_put(bio);
 		return ret;
 	}
