@@ -1504,10 +1504,12 @@ struct super_block {
 	 */
 	int cleancache_poolid;
 
+#ifndef __GENKSYMS__
 	/*
 	 * Indicates how deep in a filesystem stack this SB is
 	 */
 	int s_stack_depth;
+#endif
 };
 
 extern struct timespec current_fs_time(struct super_block *sb);
