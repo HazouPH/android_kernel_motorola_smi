@@ -1,6 +1,6 @@
 #include <linux/kernel.h>
 
-#include <asm/fpu/internal.h>
+#include <asm/i387.h>
 
 #include "SSEPlus_REF.h"
 
@@ -505,12 +505,12 @@ ssp_m128 ssp_dp_ps( ssp_m128* a, ssp_m128* b, const int mask )
 
 ssp_m128 ssp_insert_ps( ssp_m128* a, ssp_m128* b, const int sel )          // Verify behavior on Intel Hardware
 {
+	ssp_m128 A,B;
 	ssp_f32 tmp;
 	int count_d,zmask;
 
 	kernel_fpu_begin();
 
-	ssp_m128 A,B;
 	A = *a;
 	B = *b;
 

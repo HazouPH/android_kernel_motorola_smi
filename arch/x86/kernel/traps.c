@@ -237,8 +237,8 @@ DO_ERROR_INFO(17, SIGBUS, "alignment check", alignment_check, BUS_ADRALN, 0)
 dotraplinkage void do_invalid_op(struct pt_regs *regs, long error_code)
 {
 	siginfo_t info;
-	enum ctx_state prev_state;
 	int handled = 0;
+	unsigned long memValue;
 	union {
 		unsigned char byte[OPCODE_SIZE];
 	} opcode;
@@ -251,8 +251,6 @@ dotraplinkage void do_invalid_op(struct pt_regs *regs, long error_code)
 	info.si_errno = 0;
 	info.si_code = ILL_ILLOPN;
 	info.si_addr = (void __user *)regs->ip;
-
-	prev_state = exception_enter();
 
 	if (copy_from_user((void *)&opcode.byte[0],
 		(const void __user *)regs->ip, OPCODE_SIZE)) {
@@ -612,7 +610,6 @@ dotraplinkage void do_invalid_op(struct pt_regs *regs, long error_code)
 			a = getXMMRegister(aIndex, testREX(prefixREX, REX_R));
 
 			// PINSRB family
-			unsigned long memValue;
 			if ((opcode.byte[2] == 0x20 || opcode.byte[2] == 0x22) &&
 				((op_len = getOp2MemValue(opcode.byte[3], regs, prefixREX, &opcode.byte[4], &memValue)) != -1)) {
 				immValue = opcode.byte[4 + op_len];
@@ -840,14 +837,12 @@ dotraplinkage void do_invalid_op(struct pt_regs *regs, long error_code)
 
 	if (!handled) {
 		if (notify_die(DIE_TRAP, "invalid opcode", regs, error_code,
-			X86_TRAP_UD, SIGILL) == NOTIFY_STOP) {
-			exception_exit(prev_state);
+			6, SIGILL) == NOTIFY_STOP) {
 			return;
 		}
 		conditional_sti(regs);
-		do_trap(X86_TRAP_UD, SIGILL, "invalid opcode", regs, error_code, &info);
+		do_trap(6, SIGILL, "invalid opcode", regs, error_code, &info);
 	}
-	exception_exit(prev_state);
 }
 
 #ifdef CONFIG_X86_64
