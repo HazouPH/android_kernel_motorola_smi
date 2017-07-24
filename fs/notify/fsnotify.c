@@ -85,6 +85,55 @@ void __fsnotify_update_child_dentry_flags(struct inode *inode)
 	spin_unlock(&inode->i_lock);
 }
 
+struct name_snapshot {
+	const char *name;
+	char inline_name[DNAME_INLINE_LEN];
+};
+
+/*
+ * Copy dentry name without holding i_mutex on the directory. We have to be
+ * very careful as the name can be changing under us until we grab d_lock.
+ */
+static void take_dentry_name_snapshot(struct name_snapshot *name,
+				      struct dentry *dentry)
+{
+	char *namebuf = NULL;
+	unsigned int len;
+
+restart:
+	/* Opportunistic check and buffer allocation without lock... */
+	if (dname_external(dentry)) {
+		len = ACCESS_ONCE(dentry->d_name.len);
+		namebuf = kmalloc(len + 1, GFP_KERNEL);
+	}
+	spin_lock(&dentry->d_lock);
+	/* Check reliably under the lock */
+	if (dname_external(dentry)) {
+		if (!namebuf || len < dentry->d_name.len) {
+			spin_unlock(&dentry->d_lock);
+			kfree(namebuf);
+			namebuf = NULL;
+			goto restart;
+		}
+		memcpy(namebuf, dentry->d_name.name, len + 1);
+		name->name = namebuf;
+		namebuf = NULL;
+	} else {
+		memcpy(name->inline_name, dentry->d_name.name,
+		       dentry->d_name.len + 1);
+		name->name = name->inline_name;
+	}
+	spin_unlock(&dentry->d_lock);
+	/* Free buffer if it wasn't used */
+	kfree(namebuf);
+}
+
+static void release_dentry_name_snapshot(struct name_snapshot *name)
+{
+	if (unlikely(name->name != name->inline_name))
+		kfree(name->name);
+}
+
 /* Notify this dentry's parent about a child's events. */
 int __fsnotify_parent(struct path *path, struct dentry *dentry, __u32 mask)
 {
@@ -104,16 +153,25 @@ int __fsnotify_parent(struct path *path, struct dentry *dentry, __u32 mask)
 	if (unlikely(!fsnotify_inode_watches_children(p_inode)))
 		__fsnotify_update_child_dentry_flags(p_inode);
 	else if (p_inode->i_fsnotify_mask & mask) {
+		struct name_snapshot name;
+
 		/* we are notifying a parent so come up with the new mask which
 		 * specifies these are events which came from a child. */
 		mask |= FS_EVENT_ON_CHILD;
 
+		/*
+		 * We have to ve *very* careful here as dentry->d_name can be
+		 * changing under us (e.g. during open we don't hold anything
+		 * protecting from rename(2) changing the dentry).
+		 */
+		take_dentry_name_snapshot(&name, dentry);
 		if (path)
 			ret = fsnotify(p_inode, mask, path, FSNOTIFY_EVENT_PATH,
-				       dentry->d_name.name, 0);
+				       name.name, 0);
 		else
 			ret = fsnotify(p_inode, mask, dentry->d_inode, FSNOTIFY_EVENT_INODE,
-				       dentry->d_name.name, 0);
+				       name.name, 0);
+		release_dentry_name_snapshot(&name);
 	}
 
 	dput(parent);
