@@ -1376,8 +1376,7 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 		if (*offp > buffer->data_size - sizeof(*fp) ||
 		    buffer->data_size < sizeof(*fp) ||
 		    !IS_ALIGNED(*offp, sizeof(u32))) {
-			binder_debug(BINDER_DEBUG_TOP_ERRORS,
-					"binder: transaction release %d bad"
+			printk(KERN_ERR "binder: transaction release %d bad"
 					"offset %zd, size %zd\n", debug_id,
 					*offp, buffer->data_size);
 			continue;
@@ -1402,8 +1401,7 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 			struct binder_ref *ref = binder_get_ref(proc, fp->handle,
 						fp->type == BINDER_TYPE_HANDLE);
 			if (ref == NULL) {
-				binder_debug(BINDER_DEBUG_TOP_ERRORS,
-					"binder: transaction release %d"
+				printk(KERN_ERR "binder: transaction release %d"
 				       " bad handle %d\n", debug_id,
 				       fp->handle);
 				break;
@@ -1422,8 +1420,7 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 			break;
 
 		default:
-			binder_debug(BINDER_DEBUG_TOP_ERRORS,
-				"binder: transaction release %d bad "
+			printk(KERN_ERR "binder: transaction release %d bad "
 			       "object type %x\n", debug_id, fp->type);
 			break;
 		}
@@ -1761,19 +1758,13 @@ static void binder_transaction(struct binder_proc *proc,
 
 			if (reply) {
 				if (!(in_reply_to->flags & TF_ACCEPT_FDS)) {
-					binder_user_error("binder: %d:%d got"
-						" reply with fd, %d, but"
-						" target does not allow fds\n",
-						proc->pid, thread->pid,
-						fp->handle);
+					binder_user_error("binder: %d:%d got reply with fd, %d, but target does not allow fds\n",
+						proc->pid, thread->pid, fp->handle);
 					return_error = BR_FAILED_REPLY;
 					goto err_fd_not_allowed;
 				}
 			} else if (!target_node->accept_fds) {
-				binder_user_error(
-						"binder: %d:%d got transaction"
-						" with fd, %d, but target does"
-						" not allow fds\n",
+				binder_user_error("binder: %d:%d got transaction with fd, %d, but target does not allow fds\n",
 					proc->pid, thread->pid, fp->handle);
 				return_error = BR_FAILED_REPLY;
 				goto err_fd_not_allowed;
@@ -1781,9 +1772,7 @@ static void binder_transaction(struct binder_proc *proc,
 
 			file = fget(fp->handle);
 			if (file == NULL) {
-				binder_user_error(
-						"binder: %d:%d got transaction"
-						" with invalid fd, %d\n",
+				binder_user_error("binder: %d:%d got transaction with invalid fd, %d\n",
 					proc->pid, thread->pid, fp->handle);
 				return_error = BR_FAILED_REPLY;
 				goto err_fget_failed;
@@ -1802,8 +1791,7 @@ static void binder_transaction(struct binder_proc *proc,
 			task_fd_install(target_proc, target_fd, file);
 			trace_binder_transaction_fd(t, fp->handle, target_fd);
 			binder_debug(BINDER_DEBUG_TRANSACTION,
-				     "        fd %d -> %d\n", fp->handle,
-								target_fd);
+				     "        fd %d -> %d\n", fp->handle, target_fd);
 			/* TODO: fput? */
 			fp->binder = 0;
 			fp->handle = target_fd;
@@ -1967,7 +1955,7 @@ static int binder_thread_write(struct binder_proc *proc,
 					proc->pid, thread->pid, debug_string, ref->debug_id,
 					ref->desc, ref->strong, ref->weak, ref->node->debug_id);
 			}
-      break;
+      			break;
 		}
 		case BC_INCREFS_DONE:
 		case BC_ACQUIRE_DONE: {
