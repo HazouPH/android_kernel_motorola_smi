@@ -583,7 +583,7 @@ static void suspend(struct work_struct *work)
 	int entry_event_num;
 	struct timespec ts_entry, ts_exit;
 
-	if (has_wake_lock(WAKE_LOCK_SUSPEND) || !alarm_pm_wake_check()) {
+	if (has_wake_lock(WAKE_LOCK_SUSPEND)) {
 		if (debug_mask & DEBUG_SUSPEND)
 			pr_info("suspend: abort suspend\n");
 		return;
