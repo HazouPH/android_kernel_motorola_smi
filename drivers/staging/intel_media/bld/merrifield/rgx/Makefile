@@ -11,7 +11,7 @@ MEDIADIR=../../..
 RGXDIR=$(MEDIADIR)/graphics/rgx
 DISPLAYDIR=$(MEDIADIR)/display/tng/drv
 
-MEDIAINC=drivers/external_drivers/intel_media
+MEDIAINC=drivers/staging/intel_media
 RGXINC=$(MEDIAINC)/graphics/rgx
 DISPINC=$(MEDIAINC)/display/tng
 

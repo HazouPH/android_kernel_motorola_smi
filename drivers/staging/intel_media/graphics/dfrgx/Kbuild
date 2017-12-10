@@ -63,7 +63,7 @@ dfrgx-y += df_rgx_utils.o
 dfrgx-y += df_rgx_burst.o
 dfrgx-y += dev_freq_attrib.o
 
-include drivers/external_drivers/intel_media/graphics/dfrgx/dependencies/Makefile
+include drivers/staging/intel_media/graphics/dfrgx/dependencies/Makefile
 
 my_warning_flags :=
 my_warning_flags += -Wall -fmessage-length=0 -Wunused-parameter
@@ -90,13 +90,13 @@ CFLAGS_df_rgx.o += -Idrivers/devfreq
 
 # Fixme: Replace the hardcoded path with something more intelligent approach
 CFLAGS_df_rgx.o += \
-	-Idrivers/external_drivers/intel_media/display/tng/drv \
-	-Idrivers/external_drivers/intel_media/graphics/dfrgx \
+	-Idrivers/staging/intel_media/display/tng/drv \
+	-Idrivers/staging/intel_media/graphics/dfrgx \
 	-I$(INCLUDES_RGX)
 
 CFLAGS_dev_freq_graphics_pm.o += -I$(INCLUDES_RGX)
 
 CFLAGS_df_rgx_burst.o += \
-	-Idrivers/external_drivers/intel_media/display/tng/drv \
+	-Idrivers/staging/intel_media/display/tng/drv \
 	-I$(INCLUDES_RGX)
 

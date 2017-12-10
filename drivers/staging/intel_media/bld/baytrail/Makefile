@@ -7,7 +7,7 @@ BAYTRAILDIR=$(MEDIADIR)/common/baytrail
 VIDEOCOMDIR=$(MEDIADIR)/video/common
 VIDEODECDIR=$(MEDIADIR)/video/decode
 
-MEDIAINC=drivers/external_drivers/intel_media
+MEDIAINC=drivers/staging/intel_media
 BAYTRAILINC=$(MEDIAINC)/common/baytrail
 VIDEOCOMINC=$(MEDIAINC)/video/common
 VIDEODECINC=$(MEDIAINC)/video/decode
