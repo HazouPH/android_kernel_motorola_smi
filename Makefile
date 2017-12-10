@@ -326,9 +326,6 @@ MAKEFLAGS += --include-dir=$(srctree)
 $(srctree)/scripts/Kbuild.include: ;
 include $(srctree)/scripts/Kbuild.include
 
-# Include specific device makefile variables from file
-include $(srctree)/OptAtomKernel.mk
-
 # Make variables (CC, etc...)
 
 AS		= $(CROSS_COMPILE)as
@@ -379,7 +376,7 @@ KBUILD_CFLAGS   := $(ANDROID_TOOLCHAIN_FLAGS) \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks
 KBUILD_AFLAGS_KERNEL :=
-KBUILD_CFLAGS_KERNEL := $(BUILTIN_TOOLCHAIN_FLAGS)
+KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_AFLAGS_MODULE  := -DMODULE
 KBUILD_CFLAGS_MODULE  := -DMODULE -fno-pic
