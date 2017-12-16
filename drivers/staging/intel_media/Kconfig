@@ -259,6 +259,13 @@ config SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY
 	  540 x 960 resolution
 	  in portrait mode.
 
+config SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
+	depends on SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY
+	bool "SMD QHD AMOLED MIPI KCAL Control"
+	---help---
+	  Enable sysfs for rgb/gamma control for SMD QHD AMOLED MIPI display
+	  in medfield platform.
+
 config GFX_ON_GI
 	tristate "Differentiate platform for specific GFX setting"
 	depends on DRM_MDFLD

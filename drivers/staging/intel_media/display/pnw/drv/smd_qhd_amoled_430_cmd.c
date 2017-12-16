@@ -83,6 +83,11 @@ static struct dsi_cmd_entry init_seq_3[] = {
 
 static uint8_t raw_mtp[RAW_MTP_SIZE];
 static uint8_t gamma_settings[NUM_NIT_LVLS][RAW_GAMMA_SIZE];
+#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
+static u16 kcal_gamma[NUM_VOLT_PTS][NUM_COLORS];
+bool kcal_calced;
+#endif
+
 static u16 input_gamma[NUM_VOLT_PTS][NUM_COLORS] = {
 	{0x51, 0x39, 0x55},
 	{0xb0, 0xc7, 0xa0},
@@ -541,6 +546,15 @@ static char *smd_qhd_amoled_cmd_get_gamma_settings(
 		smd_dynamic_gamma_calc(V0, 0xfa, 0x02, raw_mtp,
 				input_gamma, gamma_settings);
 		gamma_calced = true;
+#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY
+		kcal_calced = true;
+	}
+	if (!kcal_calced) {
+		smd_qhd_amoled_cmd_get_mtp_offset(dsi_config, raw_mtp);
+		smd_dynamic_gamma_calc(V0, 0xfa, 0x02, raw_mtp,
+				kcal_gamma, gamma_settings);
+		kcal_calced = true;
+#endif
 	}
 
 	index = (level * NUM_NIT_LVLS) / BRIGHTNESS_MAX_LEVEL;
@@ -612,10 +626,130 @@ int smd_qhd_amoled_cmd_reset(struct mdfld_dsi_config *dsi_config)
 	return 0;
 }
 
+#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
+struct kcal_gamma_data {
+	int red;
+	int green;
+	int blue;
+	int minimum;
+};
+
+int kcal_adjtemp(uint16_t pre_gamma[NUM_VOLT_PTS][NUM_COLORS],
+		struct kcal_gamma_data *gamma_data) {
+	int16_t temp;
+	int color;
+	int i;
+	int16_t adj = 0;
+	int16_t adjtemp = 0;
+	for (color = 0; color < NUM_COLORS; color++) {
+		if (color == 0) {
+			adj = gamma_data->red; //kcal red color adjust
+		} else if (color == 1) {
+			adj = gamma_data->green; //kcal green color adjust
+		} else if (color == 2) {
+			adj = gamma_data->blue; //kcal blue color adjust
+		}
+		for (i = 0; i < NUM_VOLT_PTS; i++) {
+			temp = pre_gamma[i][color];
+			adjtemp = temp; //if color = null, don't change!
+			if (adj != 0) { //check if null
+				adjtemp = (temp * adj) / 0x0100;
+			}
+			kcal_gamma[i][color] = (uint16_t) adjtemp;
+			printk(KERN_ERR "%d ", kcal_gamma[i][color]);
+		}
+		printk(KERN_ERR "\n");
+	}
+	kcal_calced = false;
+	return 0;
+}
+
+static void kcal_apply_values(struct device *dev, struct kcal_gamma_data *gamma_data)
+{
+	gamma_data->red = (gamma_data->red < gamma_data->minimum) ?
+		gamma_data->minimum : gamma_data->red;
+	gamma_data->green = (gamma_data->green < gamma_data->minimum) ?
+		gamma_data->minimum : gamma_data->green;
+	gamma_data->blue = (gamma_data->blue < gamma_data->minimum) ?
+		gamma_data->minimum : gamma_data->blue;
+
+	kcal_adjtemp(input_gamma, gamma_data);
+}
+
+static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+	int kcal_r, kcal_g, kcal_b;
+	struct kcal_gamma_data *gamma_data = dev_get_drvdata(dev);
+
+	if (count > 12)
+		return -EINVAL;
+
+	sscanf(buf, "%d %d %d", &kcal_r, &kcal_g, &kcal_b);
+
+	if (kcal_r < 0 || kcal_r > 256)
+		return -EINVAL;
+
+	if (kcal_g < 0 || kcal_g > 256)
+		return -EINVAL;
+
+	if (kcal_b < 0 || kcal_b > 256)
+		return -EINVAL;
+
+	gamma_data->red = kcal_r;
+	gamma_data->green = kcal_g;
+	gamma_data->blue = kcal_b;
+
+	kcal_apply_values(dev, gamma_data);
+
+	return count;
+}
+
+static ssize_t kcal_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	struct kcal_gamma_data *gamma_data = dev_get_drvdata(dev);
+
+	return sprintf(buf, "%d %d %d\n", gamma_data->red, gamma_data->green,
+		gamma_data->blue);
+}
+
+static ssize_t kcal_min_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int kcal_min;
+	struct kcal_gamma_data *gamma_data = dev_get_drvdata(dev);
+
+	if (count > 4)
+		return -EINVAL;
+
+	sscanf(buf, "%d", &kcal_min);
+
+	if (kcal_min < 0 || kcal_min > 256)
+		return -EINVAL;
+
+	gamma_data->minimum = kcal_min;
+
+	kcal_apply_values(dev, gamma_data);
+
+	return count;
+}
+
+static ssize_t kcal_min_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct kcal_gamma_data *gamma_data = dev_get_drvdata(dev);
+
+	return sprintf(buf, "%d\n", gamma_data->minimum);
+}
+
+static DEVICE_ATTR(kcal, 0644, kcal_show, kcal_store);
+static DEVICE_ATTR(kcal_min, 0644, kcal_min_show, kcal_min_store);
+#endif
+
 void smd_qhd_amoled_430_cmd_init(struct drm_device *dev,
 				struct panel_funcs *p_funcs)
 {
-
 	PSB_DEBUG_ENTRY("\n");
 	printk(KERN_ERR "%s:%s start\n", __FILE__, __func__);
 	p_funcs->get_config_mode = smd_qhd_amoled_cmd_get_config_mode;
@@ -633,9 +767,36 @@ void smd_qhd_amoled_430_cmd_init(struct drm_device *dev,
 
 static int smd_qhd_amoled_430_cmd_probe(struct platform_device *pdev)
 {
+#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
+	int ret;
+	struct kcal_gamma_data *gamma_data;
+#endif
+
 	DRM_INFO("%s: smd_qhd_amoled_430 panel detected\n", __func__);
 	intel_mid_panel_register(smd_qhd_amoled_430_cmd_init);
+
+#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
+	gamma_data = kzalloc(sizeof(*gamma_data), GFP_KERNEL);
+	if (!gamma_data) {
+		pr_err("%s: failed to allocate memory for gamma_data\n",
+			__func__);
+		return -ENOMEM;
+	}
+
+	gamma_data->red = gamma_data->green = gamma_data->blue = 0x100;
+	gamma_data->minimum = 35;
+
+	platform_set_drvdata(pdev, gamma_data);
+
+	ret = device_create_file(&pdev->dev, &dev_attr_kcal);
+	ret |= device_create_file(&pdev->dev, &dev_attr_kcal_min);
+	if (ret)
+		pr_err("%s: unable to create sysfs entries\n", __func__);
+
+	return ret;
+#else
 	return 0;
+#endif
 }
 
 struct platform_driver smd_qhd_amoled_430_driver = {
