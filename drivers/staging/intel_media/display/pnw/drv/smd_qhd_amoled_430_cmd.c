@@ -653,7 +653,7 @@ int kcal_adjtemp(uint16_t pre_gamma[NUM_VOLT_PTS][NUM_COLORS],
 			temp = pre_gamma[i][color];
 			adjtemp = temp; //if color = null, don't change!
 			if (adj != 0) { //check if null
-				adjtemp = (temp * adj) / 0x0100;
+				adjtemp = (temp * adj) / 0xFF; //255
 			}
 			kcal_gamma[i][color] = (uint16_t) adjtemp;
 			printk(KERN_ERR "%d ", kcal_gamma[i][color]);
@@ -687,13 +687,13 @@ static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
 
 	sscanf(buf, "%d %d %d", &kcal_r, &kcal_g, &kcal_b);
 
-	if (kcal_r < 0 || kcal_r > 256)
+	if (kcal_r < 0 || kcal_r > 255)
 		return -EINVAL;
 
-	if (kcal_g < 0 || kcal_g > 256)
+	if (kcal_g < 0 || kcal_g > 255)
 		return -EINVAL;
 
-	if (kcal_b < 0 || kcal_b > 256)
+	if (kcal_b < 0 || kcal_b > 255)
 		return -EINVAL;
 
 	gamma_data->red = kcal_r;
@@ -725,7 +725,7 @@ static ssize_t kcal_min_store(struct device *dev,
 
 	sscanf(buf, "%d", &kcal_min);
 
-	if (kcal_min < 0 || kcal_min > 256)
+	if (kcal_min < 0 || kcal_min > 255)
 		return -EINVAL;
 
 	gamma_data->minimum = kcal_min;
