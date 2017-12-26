@@ -1,7 +1,7 @@
 #include <linux/init.h>
 #include <linux/i2c.h>
 #include <linux/akm8963.h>
-#include <linux/lis3dh.h>
+#include <linux/lis3dh_mot.h>
 #include <linux/ct406.h>
 #include <linux/gpio.h>
 

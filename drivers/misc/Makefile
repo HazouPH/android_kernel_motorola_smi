@@ -58,6 +58,6 @@ obj-$(CONFIG_MID_I2S_DEV)	+= mid_i2s_dev/
 obj-$(CONFIG_EMMC_IPANIC)	+= emmc_ipanic.o
 obj-$(CONFIG_SCU_LOGGING)	+= intel_fabric_logging.o
 obj-$(CONFIG_UUID)	+= uuid.o
-obj-$(CONFIG_SENSORS_LIS3DH)    += lis3dh.o
+obj-$(CONFIG_SENSORS_LIS3DH_MOT)    += lis3dh_mot.o
 obj-$(CONFIG_SENSORS_L3G4200D)  += l3g4200d.o
 obj-$(CONFIG_UID_CPUTIME) += uid_cputime.o

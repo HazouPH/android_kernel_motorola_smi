@@ -399,7 +399,7 @@ config SENSORS_AK8975
 	  If you say yes here you get support for Asahi Kasei's
 	  orientation sensor AK8975.
 
-config SENSORS_LIS3DH
+config SENSORS_LIS3DH_MOT
         tristate "LIS3DH Accelerometer"
         default n
         depends on I2C
