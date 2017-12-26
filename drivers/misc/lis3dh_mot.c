@@ -24,6 +24,7 @@
 #include <linux/i2c.h>
 #include <linux/input.h>
 #include <linux/input-polldev.h>
+#include <linux/interrupt.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/of.h>
