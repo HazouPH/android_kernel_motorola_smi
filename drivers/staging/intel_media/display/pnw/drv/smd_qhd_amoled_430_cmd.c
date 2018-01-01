@@ -656,9 +656,9 @@ int kcal_adjtemp(uint16_t pre_gamma[NUM_VOLT_PTS][NUM_COLORS],
 				adjtemp = (temp * adj) / 0xFF; //255
 			}
 			kcal_gamma[i][color] = (uint16_t) adjtemp;
-			printk(KERN_ERR "%d ", kcal_gamma[i][color]);
+			PSB_DEBUG_ENTRY("%d ", kcal_gamma[i][color]);
 		}
-		printk(KERN_ERR "\n");
+		PSB_DEBUG_ENTRY("\n");
 	}
 	kcal_calced = false;
 	return 0;
