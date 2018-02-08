@@ -270,6 +270,7 @@ config MCORE2
 
 config MATOM
 	bool "Intel Atom"
+	select X86_P6_NOP
 	---help---
 
 	  Select this for the Intel Atom platform. Intel Atom CPUs have an
@@ -384,21 +385,22 @@ config X86_OOSTORE
 	def_bool y
 	depends on (MWINCHIP3D || MWINCHIPC6) && MTRR
 
-#
-# P6_NOPs are a relatively minor optimization that require a family >=
-# 6 processor, except that it is broken on certain VIA chips.
-# Furthermore, AMD chips prefer a totally different sequence of NOPs
-# (which work on all CPUs).  In addition, it looks like Virtual PC
-# does not understand them.
-#
-# As a result, disallow these if we're not compiling for X86_64 (these
-# NOPs do work on all x86-64 capable chips); the list of processors in
-# the right-hand clause are the cores that benefit from this optimization.
-#
 config X86_P6_NOP
-	def_bool y
-	depends on X86_64
-	depends on (MCORE2 || MPENTIUM4 || MPSC)
+	default n
+	bool "Support for P6_NOPs on Intel chips"
+	depends on (MCORE2 || MPENTIUM4 || MPSC || MATOM)
+	---help---
+	P6_NOPs are a relatively minor optimization that require a family >=
+	6 processor, except that it is broken on certain VIA chips.
+	Furthermore, AMD chips prefer a totally different sequence of NOPs
+	(which work on all CPUs).  In addition, it looks like Virtual PC
+	does not understand them.
+
+	As a result, disallow these if we're not compiling for X86_64 (these
+	NOPs do work on all x86-64 capable chips); the list of processors in
+	the right-hand clause are the cores that benefit from this optimization.
+
+	Say Y if you have Intel CPU newer than Pentium Pro, N otherwise.
 
 config X86_TSC
 	def_bool y
