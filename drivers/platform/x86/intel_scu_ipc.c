@@ -29,7 +29,7 @@
 #include <linux/fs.h>
 #include <asm/intel-mid.h>
 #include <asm/intel_scu_ipc.h>
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <linux/intel_mid_pm.h>
 #include <linux/ipc_device.h>
 #include <linux/kernel.h>
@@ -154,7 +154,7 @@ static DEFINE_MUTEX(ipclock); /* lock used to prevent multiple call to SCU */
 static struct wake_lock ipc_wake_lock;
 
 /* PM Qos struct */
-static struct pm_qos_request_list *qos;
+static struct pm_qos_request *qos;
 
 /*
  * Command Register (Write Only):
@@ -547,7 +547,7 @@ static int __init intel_scu_ipc_init(void)
 	if (platform == 0)
 		return -ENODEV;
 
-	qos = kzalloc(sizeof(struct pm_qos_request_list), GFP_KERNEL);
+	qos = kzalloc(sizeof(struct pm_qos_request), GFP_KERNEL);
 	if (!qos)
 		return -ENOMEM;
 

@@ -20,7 +20,7 @@
  * 02110-1301, USA.
  *
  */
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <linux/async.h>
 #include "atomisp_ioctl.h"
 #include "atomisp_cmd.h"

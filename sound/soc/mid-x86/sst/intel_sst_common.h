@@ -454,7 +454,7 @@ struct intel_sst_drv {
 #ifdef CONFIG_DEBUG_FS
 	struct sst_debugfs debugfs;
 #endif
-	struct pm_qos_request_list *qos;
+	struct pm_qos_request *qos;
 };
 
 extern struct intel_sst_drv *sst_drv_ctx;

@@ -38,7 +38,7 @@
 #include <linux/firmware.h>
 #include <linux/dmaengine.h>
 #include <linux/intel_mid_dma.h>
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <linux/intel_mid_pm.h>
 #include <sound/intel_sst_ioctl.h>
 #include "../sst_platform.h"

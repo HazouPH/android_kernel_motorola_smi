@@ -27,7 +27,7 @@
 #include <linux/intel_mid_pm.h>
 #endif
 
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <media/v4l2-dev.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-subdev.h>
@@ -285,7 +285,7 @@ struct atomisp_device {
 	const struct firmware *firmware;
 	struct timer_list wdt;
 
-	struct pm_qos_request_list pm_qos;
+	struct pm_qos_request pm_qos;
 
 	struct sh_css_acc_fw *acc_fw[ATOMISP_ACC_FW_MAX];
 	unsigned int acc_fw_handle;

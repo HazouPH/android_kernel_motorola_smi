@@ -26,7 +26,7 @@
 #define INTEL_MID_SSP_SPI_H_
 
 #include <linux/intel_mid_dma.h>
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <linux/spi/spi.h>
 #include <linux/interrupt.h>
 
@@ -248,7 +248,7 @@ struct ssp_driver_context {
 	u32 mask_sr;
 
 	/* PM_QOS request */
-	struct pm_qos_request_list pm_qos_req;
+	struct pm_qos_request pm_qos_req;
 
 	struct tasklet_struct poll_transfer;
 

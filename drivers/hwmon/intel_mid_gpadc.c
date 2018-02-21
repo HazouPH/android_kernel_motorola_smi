@@ -32,7 +32,7 @@
 #include <linux/delay.h>
 #include <linux/sched.h>
 #include <linux/ipc_device.h>
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <linux/intel_mid_pm.h>
 #include <linux/workqueue.h>
 #include <linux/fs.h>
@@ -145,7 +145,7 @@ struct gpadc_info {
 	int conv_done;
 	int gsmpulse_done;
 
-	struct pm_qos_request_list pm_qos_request;
+	struct pm_qos_request pm_qos_request;
 	void (*gsmadc_notify)(int vol, int cur);
 };
 

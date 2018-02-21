@@ -33,7 +33,7 @@
 #include <linux/fs.h>
 #include <linux/firmware.h>
 #include <linux/pm_runtime.h>
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <linux/intel_mid_pm.h>
 #include <sound/intel_sst_ioctl.h>
 #include <sound/pcm.h>

@@ -32,7 +32,7 @@
 #include <linux/uaccess.h>
 #include <linux/clk.h>
 #include <linux/platform_device.h>
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 
 #include "msm_fb.h"
 

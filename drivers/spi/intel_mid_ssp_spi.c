@@ -38,7 +38,7 @@
 #include <linux/interrupt.h>
 #include <linux/dma-mapping.h>
 #include <linux/intel_mid_dma.h>
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <asm/intel-mid.h>
 
 #include <linux/spi/spi.h>

@@ -37,7 +37,7 @@
 #include <linux/firmware.h>
 #include <linux/miscdevice.h>
 #include <linux/pm_runtime.h>
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <linux/async.h>
 #include <linux/lnw_gpio.h>
 #include <linux/delay.h>
@@ -496,7 +496,7 @@ static int __devinit intel_sst_probe(struct pci_dev *pci,
 	}
 	register_sst(&pci->dev);
 	sst_debugfs_init(sst_drv_ctx);
-	sst_drv_ctx->qos = kzalloc(sizeof(struct pm_qos_request_list),
+	sst_drv_ctx->qos = kzalloc(sizeof(struct pm_qos_request),
 				GFP_KERNEL);
 	if (!sst_drv_ctx->qos)
 		goto do_free_misc;
