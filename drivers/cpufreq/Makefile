@@ -14,10 +14,7 @@ obj-$(CONFIG_CPU_FREQ_GOV_INTERACTIVE)	+= cpufreq_interactive.o
 # CPUfreq cross-arch helpers
 obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
 
-# CPUfreq limiter
-obj-$(CONFIG_CPU_FREQ_LIMIT) += cpufreq_limit.o
-
-##################################################################################
+##################################################################################d
 # x86 drivers.
 # Link order matters. K8 is preferred to ACPI because of firmware bugs in early
 # K8 systems. ACPI is preferred to all other hardware-specific drivers.
