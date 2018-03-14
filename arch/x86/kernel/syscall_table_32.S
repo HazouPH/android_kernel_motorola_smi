@@ -346,3 +346,7 @@ ENTRY(sys_call_table)
 	.long sys_syncfs
 	.long sys_sendmmsg		/* 345 */
 	.long sys_setns
+        .long sys_ni_syscall
+        .long sys_ni_syscall
+        .long sys_ni_syscall
+	.long sys_finit_module		/* 350 */
