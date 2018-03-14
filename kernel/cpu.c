@@ -548,8 +548,6 @@ cpu_hotplug_pm_callback(struct notifier_block *nb,
 
 	case PM_SUSPEND_PREPARE:
 	case PM_HIBERNATION_PREPARE:
-		if (cpu_maps_is_updating())
-				return NOTIFY_BAD;
 		cpu_hotplug_disable_before_freeze();
 		break;
 
