@@ -343,7 +343,6 @@ static int ptrace_attach(struct task_struct *task, long request,
 	if (task_is_stopped(task) &&
 	    task_set_jobctl_pending(task, JOBCTL_TRAP_STOP | JOBCTL_TRAPPING))
 		signal_wake_up_state(task, __TASK_STOPPED);
-	}
 
 	spin_unlock(&task->sighand->siglock);
 
