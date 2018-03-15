@@ -44,8 +44,6 @@
 #include <linux/delay.h>
 #include <linux/swap.h>
 #include <linux/fs.h>
-#include <linux/compaction.h>
-
 #include <trace/events/memkill.h>
 
 #ifdef CONFIG_HIGHMEM
