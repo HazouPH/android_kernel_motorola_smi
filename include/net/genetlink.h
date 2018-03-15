@@ -175,6 +175,7 @@ static inline struct nlmsghdr *genlmsg_nlhdr(void *user_hdr,
 				   NLMSG_HDRLEN);
 }
 
+#if 0
 /**
  * genl_dump_check_consistent - check if sequence is consistent and advertise if not
  * @cb: netlink callback structure that stores the sequence number
@@ -190,6 +191,7 @@ static inline void genl_dump_check_consistent(struct netlink_callback *cb,
 {
 	nl_dump_check_consistent(cb, genlmsg_nlhdr(user_hdr, family));
 }
+#endif
 
 /**
  * genlmsg_put_reply - Add generic netlink header to a reply message
