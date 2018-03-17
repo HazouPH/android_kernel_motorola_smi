@@ -3562,7 +3562,7 @@ static int selinux_kernel_module_from_file(struct file *file)
 	ad.type = LSM_AUDIT_DATA_PATH;
 	ad.u.path = file->f_path;
 
-	inode = inode = file->f_path.dentry->d_inode;
+	inode = file->f_path.dentry->d_inode;
 	isec = inode->i_security;
 	fsec = file->f_security;
 
