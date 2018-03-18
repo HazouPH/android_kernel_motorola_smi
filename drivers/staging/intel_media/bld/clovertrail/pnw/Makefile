@@ -156,3 +156,6 @@ endif
 
 obj-y += $(DRIVER_NAME).o
 
+obj-$(CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL) \
+	+= $(DISPLAYDIR)/smd_kcal_ctrl.o
+
