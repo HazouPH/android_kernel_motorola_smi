@@ -388,5 +388,3 @@ static void __exit kcal_ctrl_exit(void)
 
 late_initcall(kcal_ctrl_init);
 module_exit(kcal_ctrl_exit);
-
-MODULE_DESCRIPTION("LCD KCAL Driver");
