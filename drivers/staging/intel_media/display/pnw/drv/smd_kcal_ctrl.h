@@ -19,8 +19,7 @@
 #ifndef __SMD_KCAL_CTRL_H
 #define __SMD_KCAL_CTRL_H
 
-#define NUM_QLUT 0x100
-#define DEF_PA 0xff
+#define NUM_QLUT 0xFF
 
 struct kcal_lut_data {
 	int red;

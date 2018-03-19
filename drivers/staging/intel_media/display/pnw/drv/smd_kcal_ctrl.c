@@ -58,13 +58,13 @@ static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
 
 	sscanf(buf, "%d %d %d", &kcal_r, &kcal_g, &kcal_b);
 
-	if (kcal_r < 0 || kcal_r > 256)
+	if (kcal_r < 0 || kcal_r > NUM_QLUT)
 		return -EINVAL;
 
-	if (kcal_g < 0 || kcal_g > 256)
+	if (kcal_g < 0 || kcal_g > NUM_QLUT)
 		return -EINVAL;
 
-	if (kcal_b < 0 || kcal_b > 256)
+	if (kcal_b < 0 || kcal_b > NUM_QLUT)
 		return -EINVAL;
 
 	lut_data->red = kcal_r;
@@ -96,7 +96,7 @@ static ssize_t kcal_min_store(struct device *dev,
 
 	sscanf(buf, "%d", &kcal_min);
 
-	if (kcal_min < 0 || kcal_min > 256)
+	if (kcal_min < 0 || kcal_min > NUM_QLUT)
 		return -EINVAL;
 
 	lut_data->minimum = kcal_min;
