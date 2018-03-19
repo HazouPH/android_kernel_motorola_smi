@@ -7,6 +7,8 @@
 
 #ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
 #include "smd_kcal_ctrl.h"
+static u16 kcal_gamma[NUM_VOLT_PTS][NUM_COLORS];
+bool kcal_calced;
 #endif
 
 extern bool kexec_in_progress;
@@ -87,10 +89,6 @@ static struct dsi_cmd_entry init_seq_3[] = {
 
 static uint8_t raw_mtp[RAW_MTP_SIZE];
 static uint8_t gamma_settings[NUM_NIT_LVLS][RAW_GAMMA_SIZE];
-#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
-static u16 kcal_gamma[NUM_VOLT_PTS][NUM_COLORS];
-bool kcal_calced;
-#endif
 
 static u16 input_gamma[NUM_VOLT_PTS][NUM_COLORS] = {
 	{0x51, 0x39, 0x55},

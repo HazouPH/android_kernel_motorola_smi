@@ -33,11 +33,11 @@ static void kcal_apply_values(struct kcal_lut_data *lut_data)
 	 */
 	struct backlight_device bd;
 
-	lut_data->red = (lut_data->red < lut_data->minimum) ?
+	lut_data->red = lut_data->red < lut_data->minimum ?
 		lut_data->minimum : lut_data->red;
-	lut_data->green = (lut_data->green < lut_data->minimum) ?
+	lut_data->green = lut_data->green < lut_data->minimum ?
 		lut_data->minimum : lut_data->green;
-	lut_data->blue = (lut_data->blue < lut_data->minimum) ?
+	lut_data->blue = lut_data->blue < lut_data->minimum ?
 		lut_data->minimum : lut_data->blue;
 
 	smd_kcal_adjtemp(lut_data->red, lut_data->green, lut_data->blue);
@@ -50,21 +50,12 @@ static void kcal_apply_values(struct kcal_lut_data *lut_data)
 static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
 						const char *buf, size_t count)
 {
-	int kcal_r, kcal_g, kcal_b;
+	int kcal_r, kcal_g, kcal_b, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
-	if (count > 12)
-		return -EINVAL;
-
-	sscanf(buf, "%d %d %d", &kcal_r, &kcal_g, &kcal_b);
-
-	if (kcal_r < 0 || kcal_r > NUM_QLUT)
-		return -EINVAL;
-
-	if (kcal_g < 0 || kcal_g > NUM_QLUT)
-		return -EINVAL;
-
-	if (kcal_b < 0 || kcal_b > NUM_QLUT)
+	r = sscanf(buf, "%d %d %d", &kcal_r, &kcal_g, &kcal_b);
+	if ((r != 3) || (kcal_r < 0 || kcal_r > 255) ||
+		(kcal_g < 0 || kcal_g > 255) || (kcal_b < 0 || kcal_b > 255))
 		return -EINVAL;
 
 	lut_data->red = kcal_r;
@@ -81,22 +72,21 @@ static ssize_t kcal_show(struct device *dev, struct device_attribute *attr,
 {
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%d %d %d\n", lut_data->red, lut_data->green,
-		lut_data->blue);
+	return scnprintf(buf, PAGE_SIZE, "%d %d %d\n",
+		lut_data->red, lut_data->green, lut_data->blue);
 }
 
 static ssize_t kcal_min_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	int kcal_min;
+	int kcal_min, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
 	if (count > 4)
 		return -EINVAL;
 
-	sscanf(buf, "%d", &kcal_min);
-
-	if (kcal_min < 0 || kcal_min > NUM_QLUT)
+	r = kstrtoint(buf, 10, &kcal_min);
+	if ((r) || (kcal_min < 0 || kcal_min > 255))
 		return -EINVAL;
 
 	lut_data->minimum = kcal_min;
@@ -111,7 +101,7 @@ static ssize_t kcal_min_show(struct device *dev,
 {
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%d\n", lut_data->minimum);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", lut_data->minimum);
 }
 
 /*static ssize_t kcal_enable_store(struct device *dev,
@@ -294,14 +284,17 @@ static ssize_t kcal_cont_show(struct device *dev,
 	return sprintf(buf, "%d\n", lut_data->cont);
 }*/
 
-static DEVICE_ATTR(kcal, 0644, kcal_show, kcal_store);
-static DEVICE_ATTR(kcal_min, 0644, kcal_min_show, kcal_min_store);
-/*static DEVICE_ATTR(kcal_enable, 0644, kcal_enable_show, kcal_enable_store);
-static DEVICE_ATTR(kcal_invert, 0644, kcal_invert_show, kcal_invert_store);
-static DEVICE_ATTR(kcal_sat, 0644, kcal_sat_show, kcal_sat_store);
-static DEVICE_ATTR(kcal_hue, 0644, kcal_hue_show, kcal_hue_store);
-static DEVICE_ATTR(kcal_val, 0644, kcal_val_show, kcal_val_store);
-static DEVICE_ATTR(kcal_cont, 0644, kcal_cont_show, kcal_cont_store);*/
+static DEVICE_ATTR(kcal, S_IWUSR | S_IRUGO, kcal_show, kcal_store);
+static DEVICE_ATTR(kcal_min, S_IWUSR | S_IRUGO, kcal_min_show, kcal_min_store);
+/*static DEVICE_ATTR(kcal_enable, S_IWUSR | S_IRUGO, kcal_enable_show,
+	kcal_enable_store);
+static DEVICE_ATTR(kcal_invert, S_IWUSR | S_IRUGO, kcal_invert_show,
+	kcal_invert_store);
+static DEVICE_ATTR(kcal_sat, S_IWUSR | S_IRUGO,	kcal_sat_show, kcal_sat_store);
+static DEVICE_ATTR(kcal_hue, S_IWUSR | S_IRUGO, kcal_hue_show, kcal_hue_store);
+static DEVICE_ATTR(kcal_val, S_IWUSR | S_IRUGO, kcal_val_show, kcal_val_store);
+static DEVICE_ATTR(kcal_cont, S_IWUSR | S_IRUGO, kcal_cont_show,
+	kcal_cont_store);*/
 
 static int kcal_ctrl_probe(struct platform_device *pdev)
 {
