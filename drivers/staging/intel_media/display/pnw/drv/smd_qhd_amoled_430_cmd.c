@@ -647,7 +647,7 @@ void smd_kcal_adjtemp(int kr, int kg, int kb) {
 			temp = input_gamma[i][color];
 			adjtemp = temp; //if color = null, don't change!
 			if (adj != 0) { //check if null
-				adjtemp = (temp * adj) / NUM_QLUT; //255
+				adjtemp = (temp * adj) / 255;
 			}
 			kcal_gamma[i][color] = (uint16_t) adjtemp;
 			PSB_DEBUG_ENTRY("%d ", kcal_gamma[i][color]);

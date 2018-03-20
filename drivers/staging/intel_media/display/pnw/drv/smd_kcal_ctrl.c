@@ -301,7 +301,7 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 	int ret;
 	struct kcal_lut_data *lut_data;
 
-	lut_data = kzalloc(sizeof(*lut_data), GFP_KERNEL);
+	lut_data = devm_kzalloc(&pdev->dev, sizeof(*lut_data), GFP_KERNEL);
 	if (!lut_data) {
 		pr_err("%s: failed to allocate memory for lut_data\n",
 			__func__);
@@ -310,10 +310,12 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 
 	//mdss_mdp_pp_kcal_enable(true);
 
-	smd_kcal_adjtemp(NUM_QLUT, NUM_QLUT, NUM_QLUT);
+	platform_set_drvdata(pdev, lut_data);
 
-	lut_data->red = lut_data->green = lut_data->blue = NUM_QLUT;
-	lut_data->minimum = 35;
+	lut_data->red = NUM_QLUT;
+	lut_data->green = NUM_QLUT;
+	lut_data->blue = NUM_QLUT;
+	lut_data->minimum = 0x23;
 	/*lut_data->enable = 1;
 	lut_data->invert = 0;
 	lut_data->sat = DEF_PA;
@@ -321,7 +323,7 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 	lut_data->val = DEF_PA;
 	lut_data->cont = DEF_PA;*/
 
-	platform_set_drvdata(pdev, lut_data);
+	smd_kcal_adjtemp(lut_data->red, lut_data->green, lut_data->blue);
 
 	ret = device_create_file(&pdev->dev, &dev_attr_kcal);
 	ret |= device_create_file(&pdev->dev, &dev_attr_kcal_min);
@@ -339,8 +341,6 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 
 static int kcal_ctrl_remove(struct platform_device *pdev)
 {
-	struct kcal_lut_data *lut_data = platform_get_drvdata(pdev);
-
 	device_remove_file(&pdev->dev, &dev_attr_kcal);
 	device_remove_file(&pdev->dev, &dev_attr_kcal_min);
 	/*device_remove_file(&pdev->dev, &dev_attr_kcal_enable);
@@ -349,8 +349,6 @@ static int kcal_ctrl_remove(struct platform_device *pdev)
 	device_remove_file(&pdev->dev, &dev_attr_kcal_hue);
 	device_remove_file(&pdev->dev, &dev_attr_kcal_val);
 	device_remove_file(&pdev->dev, &dev_attr_kcal_cont);*/
-
-	kfree(lut_data);
 
 	return 0;
 }
