@@ -32,15 +32,18 @@ static void kcal_apply_values(struct kcal_lut_data *lut_data)
 	 * properly restore them on enable.
 	 */
 	struct backlight_device bd;
+	struct kcal_lut_data kcal_lut_data;
 
-	lut_data->red = lut_data->red < lut_data->minimum ?
+	kcal_lut_data.red = lut_data->red < lut_data->minimum ?
 		lut_data->minimum : lut_data->red;
-	lut_data->green = lut_data->green < lut_data->minimum ?
+	kcal_lut_data.green = lut_data->green < lut_data->minimum ?
 		lut_data->minimum : lut_data->green;
-	lut_data->blue = lut_data->blue < lut_data->minimum ?
+	kcal_lut_data.blue = lut_data->blue < lut_data->minimum ?
 		lut_data->minimum : lut_data->blue;
 
-	smd_kcal_adjtemp(lut_data->red, lut_data->green, lut_data->blue);
+	kcal_lut_data.applied = false;
+
+	smd_kcal_apply(kcal_lut_data);
 
 	// Touch brightness value to change gamma
 	bd.props.brightness = psb_get_brightness(&bd);
@@ -126,7 +129,7 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 	lut_data->blue = NUM_QLUT;
 	lut_data->minimum = 0x23;
 
-	smd_kcal_adjtemp(lut_data->red, lut_data->green, lut_data->blue);
+	kcal_apply_values(lut_data);
 
 	ret = device_create_file(&pdev->dev, &dev_attr_kcal);
 	ret |= device_create_file(&pdev->dev, &dev_attr_kcal_min);

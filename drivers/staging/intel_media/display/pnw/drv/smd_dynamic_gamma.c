@@ -2,6 +2,11 @@
 #include <linux/time.h>
 #include "smd_dynamic_gamma.h"
 
+#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
+struct kcal_lut_data kcal_lut_data_gamma;
+uint16_t kcal_g[NUM_VOLT_PTS][NUM_COLORS];
+#endif
+
 /* #define VERBOSE_LOGGING */
 
 #ifdef VERBOSE_LOGGING
@@ -341,11 +346,41 @@ static void calc_gray_lvl_volt(uint32_t v0_val,
 
 }
 
+#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
+void kcal_lut_data_apply(struct kcal_lut_data kcal_lut_data_gamma,
+			uint16_t in_gamma[NUM_VOLT_PTS][NUM_COLORS],
+			uint16_t kcal_g[NUM_VOLT_PTS][NUM_COLORS])
+{
+	int color;
+	int i;
+	int16_t adj = 0;
+	for (color = 0; color < NUM_COLORS; color++) {
+		if (color == 0) {
+			adj = kcal_lut_data_gamma.red; //kcal red color adjust
+		} else if (color == 1) {
+			adj = kcal_lut_data_gamma.green; //kcal green color adjust
+		} else if (color == 2) {
+			adj = kcal_lut_data_gamma.blue; //kcal blue color adjust
+		}
+		for (i = 0; i < NUM_VOLT_PTS; i++) {
+			kcal_g[i][color] = (in_gamma[i][color] * adj) / 255;
+			VDBG_P("%d ", kcal_g[i][color]);
+		}
+		VDBG_P("\n");
+	}
+}
+#endif
+
 static void populate_out_gamma(uint32_t v0_val,
 			uint8_t preamble_1, uint8_t preamble_2,
 			int16_t mtp_table[NUM_VOLT_PTS][NUM_COLORS],
 			uint32_t gray_v[NUM_VOLT_PTS][NUM_COLORS],
+#ifndef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
 			uint8_t out_g[NUM_NIT_LVLS][RAW_GAMMA_SIZE])
+#else
+			uint8_t out_g[NUM_NIT_LVLS][RAW_GAMMA_SIZE],
+			struct kcal_lut_data kcal_lut_data_gamma)
+#endif
 {
 	uint8_t nit_index;
 	uint8_t v_pt;
@@ -424,6 +459,13 @@ static void populate_out_gamma(uint32_t v0_val,
 		/* Remove MTP offset from value */
 		apply_mtp_to_gamma(mtp_table, temp_g, final_g, false);
 
+#ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
+		if (!kcal_lut_data_gamma.applied) {
+			kcal_lut_data_apply(kcal_lut_data_gamma, final_g, kcal_g);
+			memcpy(final_g, kcal_g, sizeof(final_g));
+		}
+#endif
+
 		out_g[nit_index][0] = preamble_1;
 		out_g[nit_index][1] = preamble_2;
 
@@ -494,7 +536,12 @@ int smd_dynamic_gamma_calc(uint32_t v0_val, uint8_t preamble_1,
 			uint8_t preamble_2,
 			uint8_t raw_mtp[RAW_MTP_SIZE],
 			uint16_t in_gamma[NUM_VOLT_PTS][NUM_COLORS],
+#ifndef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
 			uint8_t out_gamma[NUM_NIT_LVLS][RAW_GAMMA_SIZE])
+#else
+			uint8_t out_gamma[NUM_NIT_LVLS][RAW_GAMMA_SIZE],
+			struct kcal_lut_data kcal_lut_data_gamma)
+#endif
 {
 	int16_t mtp_offset[NUM_VOLT_PTS][NUM_COLORS];
 	uint16_t in_gamma_mtp[NUM_VOLT_PTS][NUM_COLORS];
@@ -513,7 +560,11 @@ int smd_dynamic_gamma_calc(uint32_t v0_val, uint8_t preamble_1,
 	calc_gray_lvl_volt(v0_val, in_gamma_volt_pts, full_gray_lvl_volt);
 
 	populate_out_gamma(v0_val, preamble_1, preamble_2,
+#ifndef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
 			mtp_offset, full_gray_lvl_volt, out_gamma);
+#else
+			mtp_offset, full_gray_lvl_volt, out_gamma, kcal_lut_data_gamma);
+#endif
 
 #ifdef VERBOSE_LOGGING
 	{

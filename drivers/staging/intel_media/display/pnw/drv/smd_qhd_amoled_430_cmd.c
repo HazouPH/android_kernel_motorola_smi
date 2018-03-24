@@ -6,9 +6,7 @@
 #include "smd_dynamic_gamma.h"
 
 #ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
-#include "smd_kcal_ctrl.h"
-static u16 kcal_gamma[NUM_VOLT_PTS][NUM_COLORS];
-bool kcal_calced;
+struct kcal_lut_data kcal_lut_data_cmd;
 #endif
 
 extern bool kexec_in_progress;
@@ -543,19 +541,21 @@ static char *smd_qhd_amoled_cmd_get_gamma_settings(
 	static bool gamma_calced;
 	int index;
 
+#ifndef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
 	if (!gamma_calced) {
+#else
+	if (!gamma_calced || !kcal_lut_data_cmd.applied) {
+#endif
 		smd_qhd_amoled_cmd_get_mtp_offset(dsi_config, raw_mtp);
 		smd_dynamic_gamma_calc(V0, 0xfa, 0x02, raw_mtp,
+#ifndef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
 				input_gamma, gamma_settings);
+#else
+				input_gamma, gamma_settings, kcal_lut_data_cmd);
+#endif
 		gamma_calced = true;
 #ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
-		kcal_calced = true;
-	}
-	if (!kcal_calced) {
-		smd_qhd_amoled_cmd_get_mtp_offset(dsi_config, raw_mtp);
-		smd_dynamic_gamma_calc(V0, 0xfa, 0x02, raw_mtp,
-				kcal_gamma, gamma_settings);
-		kcal_calced = true;
+		kcal_lut_data_cmd.applied = true;
 #endif
 	}
 
@@ -629,32 +629,12 @@ int smd_qhd_amoled_cmd_reset(struct mdfld_dsi_config *dsi_config)
 }
 
 #ifdef CONFIG_SUPPORT_SMD_QHD_AMOLED_COMMAND_MODE_DISPLAY_KCAL_CONTROL
-void smd_kcal_adjtemp(int kr, int kg, int kb) {
-	int16_t temp;
-	int color;
-	int i;
-	int16_t adj = 0;
-	int16_t adjtemp = 0;
-	for (color = 0; color < NUM_COLORS; color++) {
-		if (color == 0) {
-			adj = kr; //kcal red color adjust
-		} else if (color == 1) {
-			adj = kg; //kcal green color adjust
-		} else if (color == 2) {
-			adj = kb; //kcal blue color adjust
-		}
-		for (i = 0; i < NUM_VOLT_PTS; i++) {
-			temp = input_gamma[i][color];
-			adjtemp = temp; //if color = null, don't change!
-			if (adj != 0) { //check if null
-				adjtemp = (temp * adj) / 255;
-			}
-			kcal_gamma[i][color] = (uint16_t) adjtemp;
-			PSB_DEBUG_ENTRY("%d ", kcal_gamma[i][color]);
-		}
-		PSB_DEBUG_ENTRY("\n");
-	}
-	kcal_calced = false;
+void smd_kcal_apply(struct kcal_lut_data lut_data)
+{
+	kcal_lut_data_cmd.red = lut_data.red;
+	kcal_lut_data_cmd.green = lut_data.green;
+	kcal_lut_data_cmd.blue = lut_data.blue;
+	kcal_lut_data_cmd.applied = lut_data.applied;
 }
 #endif
 

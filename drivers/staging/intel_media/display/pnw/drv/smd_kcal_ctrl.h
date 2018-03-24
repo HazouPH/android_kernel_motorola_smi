@@ -26,6 +26,7 @@ struct kcal_lut_data {
 	int green;
 	int blue;
 	int minimum;
+	bool applied;
 /*	int enable;
 	int invert;
 	int sat;
@@ -35,7 +36,7 @@ struct kcal_lut_data {
 };
 
 //void smd_kcal_enable(bool enable);
-void smd_kcal_adjtemp(int kr, int kg, int kb);
+void smd_kcal_apply(struct kcal_lut_data lut_data);
 //void mdss_mdp_pp_kcal_pa(struct kcal_lut_data *lut_data);
 //void mdss_mdp_pp_kcal_invert(int enable);
 #endif
