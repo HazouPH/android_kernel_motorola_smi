@@ -1122,7 +1122,7 @@ static struct attribute *interactive_attributes[] = {
 
 static struct attribute_group interactive_attr_group = {
 	.attrs = interactive_attributes,
-	.name = "interactive",
+	.name = "interactivex2",
 };
 
 static int cpufreq_interactive_idle_notifier(struct notifier_block *nb,
