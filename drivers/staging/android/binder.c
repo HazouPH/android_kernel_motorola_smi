@@ -3743,7 +3743,6 @@ static void binder_deferred_release(struct binder_proc *proc)
 		node = rb_entry(n, struct binder_node, rb_node);
 		nodes++;
 		rb_erase(&node->rb_node, &proc->nodes);
-		binder_release_work(&node->async_todo);
 		list_del_init(&node->work.entry);
 		binder_release_work(&node->async_todo);
 		if (hlist_empty(&node->refs)) {
