@@ -12,7 +12,9 @@
 #include <linux/etherdevice.h>
 #include <net/arp.h>
 #include <net/cfg80211.h>
+#ifdef CONFIG_CFG80211_WEXT
 #include <net/cfg80211-wext.h>
+#endif
 #include <net/iw_handler.h>
 #include "core.h"
 #include "nl80211.h"
