@@ -69,6 +69,9 @@
 #define SOC_DEF_MAX_MIN2_THRLD	0xFF04
 #define SOC_DEF_MAX_MIN3_THRLD	0xFF01
 
+/* SOC threshold for 1% interrupt */
+#define SOC_INTR_S0_THR		1
+
 #define MISCCFG_CONFIG_REPSOC	0x0000
 #define MISCCFG_CONFIG_VFSOC	0x0003
 
@@ -77,6 +80,8 @@
 #define SOC_WARNING_LEVEL2	4
 #define SOC_SHUTDOWN_LEVEL	1
 
+#define CONFIG_BER_BIT_ENBL	(1 << 0)
+#define CONFIG_BEI_BIT_ENBL	(1 << 1)
 #define CONFIG_ALRT_BIT_ENBL	(1 << 2)
 #define CONFIG_TSTICKY_BIT_SET	(1 << 13)
 #define CONFIG_ALP_BIT_ENBL	(1 << 11)
@@ -242,6 +247,9 @@ enum max170xx_chip_type {MAX17042, MAX17050};
 /* No of times we should reset I2C lines */
 #define NR_I2C_RESET_CNT	8
 
+#define VBATT_MAX 4200
+#define VBATT_MIN 3400
+
 /* default fuel gauge cell data for debug purpose only */
 static uint16_t cell_char_tbl[] = {
 	/* Data to be written from 0x80h */
@@ -323,7 +331,10 @@ static struct notifier_block max17042_reboot_notifier_block = {
 
 static bool is_battery_online(struct max17042_chip *chip);
 static void configure_interrupts(struct max17042_chip *chip);
-static void set_soc_intr_thresholds(struct max17042_chip *chip);
+/* Set SOC threshold in S3 state */
+static int set_soc_intr_thresholds_s3(struct max17042_chip *chip);
+/* Set SOC threshold to offset percentage in S0 state */
+static void set_soc_intr_thresholds_s0(struct max17042_chip *chip, int offset);
 static void save_runtime_params(struct max17042_chip *chip);
 static void set_chip_config(struct max17042_chip *chip);
 static u16 fg_vfSoc;
@@ -334,6 +345,30 @@ static struct i2c_client *max17042_client;
 atomic_t fopen_count;
 
 static void update_runtime_params(struct max17042_chip *chip);
+
+/* Voltage-Capacity lookup function to get
+ * capacity value against a given voltage */
+static unsigned int voltage_capacity_lookup(unsigned int val)
+{
+	unsigned int max = VBATT_MAX;
+	unsigned int min = VBATT_MIN;
+	unsigned int capacity;
+	unsigned int total_diff;
+	unsigned int val_diff;
+
+	if (val > VBATT_MAX)
+		return 100;
+
+	if (val < VBATT_MIN)
+		return 0;
+
+	total_diff = max - min;
+	val_diff = max - val;
+
+	capacity = (total_diff - val_diff) * 100 / total_diff;
+
+	return capacity;
+}
 
 static int dev_file_open(struct inode *i, struct file *f)
 {
@@ -590,15 +625,17 @@ static irqreturn_t max17042_thread_handler(int id, void *dev)
 		dev_info(&chip->client->dev, "VOLT threshold INTR\n");
 
 	if ((stat & STATUS_INTR_SOCMAX_BIT) ||
-		(stat & STATUS_INTR_SOCMIN_BIT))
+		(stat & STATUS_INTR_SOCMIN_BIT)) {
 		dev_info(&chip->client->dev, "SOC threshold INTR\n");
+	}
 
 	if (stat & STATUS_BR_BIT) {
 		dev_info(&chip->client->dev, "Battery removed INTR\n");
 		/* clear BR bit */
 		max17042_reg_read_modify(chip->client, MAX17042_STATUS,
 						STATUS_BR_BIT, 0);
-		if (stat & STATUS_BST_BIT) {
+		if ((fg_conf_data->cfg & CONFIG_BER_BIT_ENBL) &&
+				(stat & STATUS_BST_BIT)) {
 			dev_warn(&chip->client->dev, "battery unplugged\n");
 			mutex_lock(&chip->batt_lock);
 			chip->present = 0;
@@ -607,7 +644,8 @@ static irqreturn_t max17042_thread_handler(int id, void *dev)
 		}
 	}
 
-	power_supply_changed(&chip->battery);
+	/* update battery status and health */
+	schedule_work(&chip->evt_worker);
 	pm_runtime_put_sync(&chip->client->dev);
 	return IRQ_HANDLED;
 }
@@ -862,18 +900,24 @@ static int max17042_get_property(struct power_supply *psy,
 
 		/* If current sensing is not enabled then read the
 		 * voltage based fuel gauge register for SOC */
-		if (chip->pdata->enable_current_sense)
+		if (chip->pdata->enable_current_sense) {
 			ret = max17042_read_reg(chip->client, MAX17042_RepSOC);
-		else
-			ret = max17042_read_reg(chip->client, MAX17042_VFSOC);
-		if (ret < 0)
-			goto ps_prop_read_err;
-		val->intval = ret >> 8;
-		/* Check if MSB of lower byte is set
-		 * then round off the SOC to higher digit
-		 */
-		if ((ret & 0x80) && val->intval)
-			val->intval += 1;
+			if (ret < 0)
+				goto ps_prop_read_err;
+			val->intval = ret >> 8;
+			/* Check if MSB of lower byte is set
+			 * then round off the SOC to higher digit
+			 */
+			if ((ret & 0x80) && val->intval)
+				val->intval += 1;
+		} else {
+			ret = max17042_read_reg(chip->client, MAX17042_VCELL);
+			if (ret < 0)
+				goto ps_prop_read_err;
+
+			ret = (ret >> 3) * MAX17042_VOLT_CONV_FCTR / 1000;
+			val->intval = voltage_capacity_lookup(ret);
+		}
 
 		if (val->intval > 100)
 			val->intval = 100;
@@ -1162,7 +1206,7 @@ static void reset_vfsoc0_reg(struct max17042_chip *chip)
 
 static void load_new_capacity_params(struct max17042_chip *chip, bool is_por)
 {
-	u16 full_cap0, rem_cap, rep_cap, dq_acc;
+	u16 rem_cap, rep_cap, dq_acc;
 
 	if (is_por) {
 		/* fg_vfSoc needs to shifted by 8 bits to get the
@@ -1469,8 +1513,6 @@ static int init_max17042_chip(struct max17042_chip *chip)
 
 static void reset_max17042(struct max17042_chip *chip)
 {
-	int val;
-
 	/* do soft power reset */
 	enable_soft_POR(chip);
 
@@ -1566,7 +1608,51 @@ static void max17042_init_worker(struct work_struct *work)
 	max17042_restore_conf_data(chip);
 }
 
-static void set_soc_intr_thresholds(struct max17042_chip *chip)
+/* Set the SOC threshold interrupt to offset percentage in S0 state */
+static void set_soc_intr_thresholds_s0(struct max17042_chip *chip, int offset)
+{
+	u16 soc_tr;
+	int soc, ret;
+
+	/* program interrupt thesholds such that we should
+	 * get interrupt for every 'offset' perc change in the soc
+	 */
+	ret = max17042_read_reg(chip->client, MAX17042_RepSOC);
+	if (ret < 0) {
+		dev_err(&chip->client->dev,
+			"maxim RepSOC read failed:%d\n", ret);
+		return ;
+	}
+	soc = ret >> 8;
+	/* Check if MSB of lower byte is set
+	 * then round off the SOC to higher digit
+	 */
+	if (ret & 0x80)
+		soc += 1;
+
+	/* if upper threshold exceeds 100% then stop
+	 * the interrupt for upper thresholds */
+	 if ((soc + offset) > 100)
+		soc_tr = 0xff << 8;
+	else
+		soc_tr = (soc + offset) << 8;
+
+	/* if lower threshold falls
+	 * below 1% limit it to 1% */
+	if ((soc - offset) < 1)
+		soc_tr |= 1;
+	else
+		soc_tr |= (soc - offset);
+
+	dev_info(&chip->client->dev,
+		"soc perc: soc: %d, offset: %d\n", soc, offset);
+	ret = max17042_write_reg(chip->client, MAX17042_SALRT_Th, soc_tr);
+	if (ret < 0)
+		dev_err(&chip->client->dev,
+			"SOC threshold write to maxim fail:%d", ret);
+}
+
+static int set_soc_intr_thresholds_s3(struct max17042_chip *chip)
 {
 	int ret, val, soc;
 
@@ -1577,7 +1663,7 @@ static void set_soc_intr_thresholds(struct max17042_chip *chip)
 	if (ret < 0) {
 		dev_err(&chip->client->dev,
 			"maxim RepSOC read failed:%d\n", ret);
-		return ;
+		return ret;
 	}
 	val = ret;
 	soc = val >> 8;
@@ -1598,7 +1684,11 @@ static void set_soc_intr_thresholds(struct max17042_chip *chip)
 	else
 		val = SOC_DEF_MAX_MIN3_THRLD;
 
-	max17042_write_reg(chip->client, MAX17042_SALRT_Th, val);
+	ret = max17042_write_reg(chip->client, MAX17042_SALRT_Th, val);
+	if (ret < 0)
+		return ret;
+	return 0;
+
 }
 
 static int max17042_get_batt_health(void)
@@ -1677,6 +1767,12 @@ static void max17042_evt_worker(struct work_struct *work)
 		schedule_work(&chip->init_worker);
 
 	power_supply_changed(&chip->battery);
+	/* If charging is stopped and there is a sudden drop in SOC below
+	 * minimum threshold currently set, we'll not get further interrupts.
+	 * This call to set thresholds, will take care of this scenario.
+	 */
+	if (chip->pdata->soc_intr_mode_enabled)
+		set_soc_intr_thresholds_s0(chip, SOC_INTR_S0_THR);
 	pm_runtime_put_sync(&chip->client->dev);
 }
 
@@ -1709,15 +1805,7 @@ static bool is_battery_online(struct max17042_chip *chip)
 
 static void init_battery_props(struct max17042_chip *chip)
 {
-	if (is_battery_online(chip)) {
-		dev_dbg(&chip->client->dev, "battery present\n");
-		chip->present = 1;
-	} else {
-		dev_warn(&chip->client->dev, "battery NOT present\n");
-		chip->present = 0;
-		kernel_power_off();
-	}
-
+	chip->present = 1;
 	chip->status = POWER_SUPPLY_STATUS_UNKNOWN;
 	chip->health = POWER_SUPPLY_HEALTH_UNKNOWN;
 	chip->technology = chip->pdata->technology;
@@ -1908,6 +1996,13 @@ static void configure_interrupts(struct max17042_chip *chip)
 	max17042_write_reg(chip->client, MAX17042_TALRT_Th,
 					TEMP_DEF_MAX_MIN_THRLD);
 
+	/* clear BI bit */
+	max17042_reg_read_modify(chip->client, MAX17042_STATUS,
+						STATUS_BI_BIT, 0);
+	/* clear BR bit */
+	max17042_reg_read_modify(chip->client, MAX17042_STATUS,
+						STATUS_BR_BIT, 0);
+
 	/* get interrupt edge type from ALP pin */
 	if (fg_conf_data->cfg & CONFIG_ALP_BIT_ENBL)
 		edge_type = IRQF_TRIGGER_RISING;
@@ -1932,13 +2027,18 @@ static void configure_interrupts(struct max17042_chip *chip)
 	max17042_reg_read_modify(chip->client, MAX17042_CONFIG,
 						CONFIG_ALRT_BIT_ENBL, 1);
 
+	/* set the Interrupt threshold register for soc */
+	if (chip->pdata->soc_intr_mode_enabled)
+		set_soc_intr_thresholds_s0(chip, SOC_INTR_S0_THR);
+
 	/*
 	 * recheckthe battery present status to
 	 * make sure we didn't miss any battery
 	 * removal event and power off if battery
 	 * is removed/unplugged.
 	 */
-	if (!is_battery_online(chip)) {
+	if ((fg_conf_data->cfg & CONFIG_BER_BIT_ENBL) &&
+		!is_battery_online(chip)) {
 		dev_warn(&chip->client->dev, "battery NOT present\n");
 		mutex_lock(&chip->batt_lock);
 		chip->present = 0;
@@ -2121,6 +2221,7 @@ static int __devexit max17042_remove(struct i2c_client *client)
 static int max17042_suspend(struct device *dev)
 {
 	struct max17042_chip *chip = dev_get_drvdata(dev);
+	int ret;
 
 	/*
 	 * disable irq here doesn't mean max17042 interrupt
@@ -2132,11 +2233,15 @@ static int max17042_suspend(struct device *dev)
 	 */
 	if (chip->client->irq > 0) {
 		/* set SOC alert thresholds */
-		set_soc_intr_thresholds(chip);
+		ret = set_soc_intr_thresholds_s3(chip);
+		if (ret < 0)
+			return ret;
 		/* setting Vmin(3300mV) threshold to wake the
 		 * platfrom in under low battery conditions */
-		max17042_write_reg(chip->client, MAX17042_VALRT_Th,
+		ret = max17042_write_reg(chip->client, MAX17042_VALRT_Th,
 					VOLT_MIN_THRLD_ENBL);
+		if (ret < 0)
+			return ret;
 		disable_irq(chip->client->irq);
 		enable_irq_wake(chip->client->irq);
 	}
@@ -2153,17 +2258,24 @@ static int max17042_suspend(struct device *dev)
 static int max17042_resume(struct device *dev)
 {
 	struct max17042_chip *chip = dev_get_drvdata(dev);
+	int ret;
 
 	if (chip->client->irq > 0) {
 		/* Setting V-alrt threshold register to default values */
-		max17042_write_reg(chip->client, MAX17042_VALRT_Th,
+		ret = max17042_write_reg(chip->client, MAX17042_VALRT_Th,
 					VOLT_DEF_MAX_MIN_THRLD);
+		if (ret < 0)
+			return ret;
 		/* set SOC-alert threshold sholds to lowest value */
-		max17042_write_reg(chip->client, MAX17042_SALRT_Th,
+		ret = max17042_write_reg(chip->client, MAX17042_SALRT_Th,
 					SOC_DEF_MAX_MIN3_THRLD);
+		if (ret < 0)
+			return ret;
 		enable_irq(chip->client->irq);
 		disable_irq_wake(chip->client->irq);
 	}
+	/* update battery status and health */
+	schedule_work(&chip->evt_worker);
 
 	/* max17042 IC automatically wakes up if any edge
 	 * on SDCl or SDA if we set I2CSH of CONFG reg

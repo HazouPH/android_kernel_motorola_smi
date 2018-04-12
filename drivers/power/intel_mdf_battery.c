@@ -560,7 +560,7 @@ static int intel_msic_store_refrenced_table(u8 model)
 {
 	int mip_offset, ret, batt_index;
 	void *data;
-	u8 batt_id[BATTID_STR_LEN];
+	u8 batt_id[BATTID_STR_LEN] = {0};
 	u8 fg_tbl_type_id;
 
 	dev_info(msic_dev, "[sfi->batt_id]:%s\n", sfi_table->batt_id);
@@ -777,7 +777,7 @@ static int mdf_multi_read_adc_regs(struct msic_power_module_info *mbi,
 	va_list args;
 	int ret = 0, i, sensor, tmp;
 	int *adc_val;
-	int temp_adc_val[MSIC_BATT_SENSORS];
+	int temp_adc_val[MSIC_BATT_SENSORS] = {0};
 
 	mutex_lock(&mbi->adc_val_lock);
 	if (!is_ttl_valid(adc_ttl) || (sample_count > 1)) {
@@ -866,6 +866,8 @@ int intel_msic_get_battery_pack_temp(int *temp)
 }
 EXPORT_SYMBOL(intel_msic_get_battery_pack_temp);
 
+/* Avoid MSIC-reads when debugging not enabled */
+#if defined(DEBUG) || defined(CONFIG_DYNAMIC_DEBUG)
 static void dump_registers(int dump_mask)
 {
 	int i, retval = 0;
@@ -879,17 +881,13 @@ static void dump_registers(int dump_mask)
 	char *reg_str_boot[] = {"rirq1", "rirq2", "lowdet",
 				"spchr", "chrtime", "chrctrl1",
 				"chrgwdt", "safelmt"};
-	uint16_t reg_addr_int[] = {MSIC_BATT_CHR_PWRSRCINT_ADDR,
-		MSIC_BATT_CHR_PWRSRCINT1_ADDR, MSIC_BATT_CHR_CHRINT_ADDR,
-		MSIC_BATT_CHR_CHRINT1_ADDR, MSIC_BATT_CHR_PWRSRCLMT_ADDR};
-	char *reg_str_int[] = {"pwrint", "pwrint1", "chrint",
-				"chrint1", "pwrsrclmt"};
 	uint16_t reg_addr_evt[] = {MSIC_BATT_CHR_CHRCTRL_ADDR,
 		MSIC_BATT_CHR_CHRCVOLTAGE_ADDR, MSIC_BATT_CHR_CHRCCURRENT_ADDR,
 		MSIC_BATT_CHR_SPWRSRCINT_ADDR, MSIC_BATT_CHR_SPWRSRCINT1_ADDR,
 		CHR_STATUS_FAULT_REG};
 	char *reg_str_evt[] = {"chrctrl", "chrcv", "chrcc",
 				"spwrsrcint", "sprwsrcint1", "chrflt"};
+
 
 	if (dump_mask & MSIC_CHRG_REG_DUMP_BOOT) {
 		for (i = 0; i < ARRAY_SIZE(reg_addr_boot); i++) {
@@ -900,18 +898,6 @@ static void dump_registers(int dump_mask)
 				goto ipcread_err;
 			}
 			dev_dbg(msic_dev, "%s val: %x\n", reg_str_boot[i],
-								reg_val);
-		}
-	}
-	if (dump_mask & MSIC_CHRG_REG_DUMP_INT) {
-		for (i = 0; i < ARRAY_SIZE(reg_addr_int); i++) {
-			retval = intel_scu_ipc_ioread8(reg_addr_int[i],
-								&reg_val);
-			if (retval) {
-				chk_reg_addr = reg_addr_int[i];
-				goto ipcread_err;
-			}
-			dev_dbg(msic_dev, "%s val: %x\n", reg_str_int[i],
 								reg_val);
 		}
 	}
@@ -933,6 +919,11 @@ static void dump_registers(int dump_mask)
 ipcread_err:
 	handle_ipc_rw_status(retval, chk_reg_addr, MSIC_IPC_READ);
 }
+#else
+static void dump_registers(int dump_mask)
+{
+}
+#endif
 
 static bool is_charger_fault(void)
 {
@@ -1198,14 +1189,32 @@ static void msic_handle_exception(struct msic_power_module_info *mbi,
 			dev_info(msic_dev,
 				"[Low Batt] msic vbatt:%dmV\n", msic_vbatt);
 
+		/* read ocv voltage from fuel gauge */
+		fg_vbatt = fg_chip_get_property(POWER_SUPPLY_PROP_VOLTAGE_OCV);
+		if (fg_vbatt < 0)
+			dev_warn(msic_dev,
+				"[Low Bat]Can't read voltage ocv from FG\n");
+		else
+			dev_info(msic_dev,
+			"[Low Batt]fg vbatt ocv:%dmV\n", fg_vbatt/1000);
+
 		/* read avg voltage from fuel gauge */
 		fg_vbatt = fg_chip_get_property(POWER_SUPPLY_PROP_VOLTAGE_AVG);
 		if (fg_vbatt < 0)
 			dev_warn(msic_dev,
-				"[Low Bat]Can't read voltage from FG\n");
+				"[Low Bat]Can't read voltage avg from FG\n");
 		else
 			dev_info(msic_dev,
-				"[Low Batt]fg vbatt avg:%dmV\n", fg_vbatt/1000);
+			"[Low Batt]fg vbatt avg:%dmV\n", fg_vbatt/1000);
+
+		/* read inst voltage from fuel gauge */
+		fg_vbatt = fg_chip_get_property(POWER_SUPPLY_PROP_VOLTAGE_NOW);
+		if (fg_vbatt < 0)
+			dev_warn(msic_dev,
+				"[Low Bat]Can't read voltage now from FG\n");
+		else
+			dev_info(msic_dev,
+			"[Low Batt]fg vbatt now:%dmV\n", fg_vbatt/1000);
 
 		/* read current from fuel gauge */
 		fg_curr = fg_chip_get_property(POWER_SUPPLY_PROP_CURRENT_NOW);
@@ -1466,6 +1475,10 @@ static void update_usb_ps_info(struct msic_power_module_info *mbi,
 		} else if (cap->chrg_type == CHRG_DCP) {
 			mbi->usb.type = POWER_SUPPLY_TYPE_USB_DCP;
 			dev_info(msic_dev, "Charger type: DCP, "
+					"current-val: %d", cap->mA);
+		} else if (cap->chrg_type == CHRG_SE1) {
+			mbi->usb.type = POWER_SUPPLY_TYPE_USB_DCP;
+			dev_info(msic_dev, "Charger type: SE1, "
 					"current-val: %d", cap->mA);
 		} else if (cap->chrg_type == CHRG_ACA) {
 			mbi->usb.type = POWER_SUPPLY_TYPE_USB_ACA;
@@ -2509,7 +2522,7 @@ static irqreturn_t msic_battery_thread_handler(int id, void *dev)
 	disable_chr_tmr = mbi->disable_safety_tmr;
 	mutex_unlock(&mbi->event_lock);
 
-	dump_registers(MSIC_CHRG_REG_DUMP_INT | MSIC_CHRG_REG_DUMP_EVENT);
+	dump_registers(MSIC_CHRG_REG_DUMP_EVENT);
 
 	/* Check if charge complete */
 	if (data[1] & MSIC_BATT_CHR_CHRCMPLT_MASK)
@@ -2877,7 +2890,7 @@ static void sfi_table_invalid_batt(struct msic_batt_sfi_prop *sfi_table)
 * mfld_umip_read_termination_current - reads the termination current data from umip using IPC.
 * @term_curr : termination current read from umip.
 */
-static void  mfld_umip_read_termination_current(u16 *term_curr)
+static void  mfld_umip_read_termination_current(u32 *term_curr)
 {
 	int mip_offset, ret;
 	/* Read 2bytes of termination current data from the umip */

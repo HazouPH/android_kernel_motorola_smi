@@ -331,9 +331,8 @@
 /* Convert ADC value to VBUS voltage */
 #define MSIC_ADC_TO_VBUS_VOL(adc_val)	((6843 * (adc_val)) / 1000)
 
-#define MSIC_CHRG_REG_DUMP_INT		(1 << 0)
-#define MSIC_CHRG_REG_DUMP_BOOT		(1 << 1)
-#define MSIC_CHRG_REG_DUMP_EVENT	(1 << 2)
+#define MSIC_CHRG_REG_DUMP_BOOT		(1 << 0)
+#define MSIC_CHRG_REG_DUMP_EVENT	(1 << 1)
 
 /* SMIP FPO1 options field provides different
  * shutdowns methods which should be enabled
@@ -553,6 +552,6 @@ struct msic_power_module_info {
 	uint8_t chrint_mask, chrint1_mask;
 
 	int in_cur_lmt;	/* input current limit level */
-	uint16_t term_curr; /*termination current */
+	uint32_t term_curr; /*termination current */
 };
 #endif
