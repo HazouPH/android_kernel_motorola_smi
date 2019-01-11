@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <asm/boot.h>
+#include <sys/sysmacros.h>
 
 typedef unsigned char  u8;
 typedef unsigned short u16;
