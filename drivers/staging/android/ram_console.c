@@ -341,7 +341,7 @@ static int __init ram_console_early_init(void)
 		ram_console_old_log_init_buffer);
 }
 #else
-static int __init ram_console_probe(struct platform_device *pdev)
+static int ram_console_driver_probe(struct platform_device *pdev)
 {
 	struct resource *res = pdev->resource;
 	size_t start;
@@ -373,6 +373,7 @@ static int __init ram_console_probe(struct platform_device *pdev)
 }
 
 static struct platform_driver ram_console_driver = {
+	.probe = ram_console_driver_probe,
 	.driver		= {
 		.name	= "ram_console",
 	},
@@ -380,7 +381,9 @@ static struct platform_driver ram_console_driver = {
 
 static int __init ram_console_module_init(void)
 {
-	return platform_driver_probe(&ram_console_driver, ram_console_probe);
+	int err;
+	err = platform_driver_register(&ram_console_driver);
+	return err;
 }
 #endif
 
