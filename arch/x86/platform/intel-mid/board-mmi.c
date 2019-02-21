@@ -223,6 +223,7 @@ int __init board_proc_init(void)
 
 early_initcall(board_proc_init);
 
+#if defined(CONFIG_VIDEO_ATOMISP)
 #define SH833SU_I2C_ADDR	0x72		/* i2c address */
 #define SH833SU_BUS		4		/* i2c bus number */
 
@@ -253,6 +254,7 @@ static int __init mmi_i2c_sfi_workaround(void)
 	return 0;
 }
 device_initcall(mmi_i2c_sfi_workaround);
+#endif
 
 #define FACT_KILL_GPIO_PIN 157  // GP_CORE_061
 
